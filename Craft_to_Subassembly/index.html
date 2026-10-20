@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Craft → Subassembly</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#667085;--bd:#dde1e7;--ac:#2d6cdf;--act:#fff;--ok:#1f8a4c;--warn:#b7791f;--bad:#c0392b;--chip:#eaf0fc;
+color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--card:#1d2128;--tx:#e8eaee;--mut:#98a1b0;--bd:#2d333d;--ac:#6b9bff;--act:#0d1117;--ok:#4cc17f;--warn:#e0b050;--bad:#ef7a6d;--chip:#222b3d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14171c;--card:#1d2128;--tx:#e8eaee;--mut:#98a1b0;--bd:#2d333d;--ac:#6b9bff;--act:#0d1117;--ok:#4cc17f;--warn:#e0b050;--bad:#ef7a6d;--chip:#222b3d;color-scheme:dark}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:12px;background:var(--card);border-bottom:1px solid var(--bd);padding:10px 14px}
+.top a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ac);font-weight:650;padding:6px 10px;border:1px solid var(--bd);border-radius:9px;background:var(--bg)}
+.top a:hover,.top a:focus-visible{border-color:var(--ac);outline:none}
+.top a.crumb{border:0;background:none;padding:0;font-weight:500}
+.top span{color:var(--mut);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--card);z-index:19}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
+.wrap{max-width:760px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:6px 0 2px}
+.sub{color:var(--mut);margin:0 0 12px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.drop{border:2px dashed var(--bd);text-align:center;padding:22px 12px;cursor:pointer}
+.drop.over{border-color:var(--ac)}
+.drop b{color:var(--ac)}
+button,.btn{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:9px;padding:8px 12px;cursor:pointer}
+button.pri{background:var(--ac);color:var(--act);border-color:var(--ac);font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+input[type=text]{font:inherit;width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:9px;background:var(--bg);color:var(--tx)}
+label.opt{display:flex;gap:8px;align-items:flex-start;margin:8px 0 0;font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chip{background:var(--chip);border:1px solid var(--bd);border-radius:99px;padding:4px 10px;font-size:13px}
+.chip.off{opacity:.5;text-decoration:line-through}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:12px 0 2px}
+.list{max-height:52vh;overflow-y:auto;margin-top:8px;border:1px solid var(--bd);border-radius:10px}
+.p{display:flex;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--bd)}
+.p:last-child{border-bottom:0}
+.p input{width:20px;height:20px;flex:none}
+.p .m{flex:1;min-width:0}
+.p .t{font-weight:600}
+.p .n{color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{font-size:11px;border-radius:6px;padding:2px 6px;border:1px solid currentColor;flex:none}
+.tag.in{color:var(--ok)}.tag.out{color:var(--mut)}.tag.orph{color:var(--warn)}
+.p.out .t{text-decoration:line-through;color:var(--mut)}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px))}
+.bar .in{max-width:760px;margin:0 auto;display:flex;gap:8px;align-items:center}
+.bar .s{flex:1;font-size:13px}
+.msg{font-size:13px;margin-top:8px;color:var(--mut)}
+.err{color:var(--bad)}
+textarea{width:100%;height:140px;margin-top:8px;font:12px ui-monospace,Menlo,monospace;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:9px;padding:8px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<nav class="top"><a href="../index.html" class="homelink" id="home" aria-label="Back to the homepage">← Home</a><span><a href="../index.html" class="homelink crumb">All Juno tools</a> › Craft → Subassembly</span></nav>
+<div class="wrap">
+  <h1>Craft → Subassembly</h1>
+  <p class="sub">Convert a Juno: New Origins craft XML into a subassembly, leaving out the parts you pick. Everything runs in your browser.</p>
+
+  <div class="card drop" id="drop">
+    <div><b>Tap to choose a craft .xml</b><br><span class="sub">or drop the file here</span></div>
+    <input type="file" id="file" accept=".xml,text/xml,application/xml" hidden>
+  </div>
+  <div class="msg err" id="err" hidden></div>
+
+  <div id="app" hidden>
+    <div class="card">
+      <div class="sub" style="margin:0 0 4px">Subassembly name</div>
+      <input type="text" id="name">
+      <label class="opt"><input type="checkbox" id="orph"> <span>Keep parts that end up disconnected from the root (the game may reject these)</span></label>
+      <label class="opt"><input type="checkbox" id="center" checked> <span>Re-center on the average part position (what the game does)</span></label>
+    </div>
+
+    <div class="card">
+      <b>Parts to include</b> <span class="sub">— untick to leave out</span>
+      <h2>Quick toggle by type</h2><div class="chips" id="types"></div>
+      <h2 id="bh">Quick toggle by body</h2><div class="chips" id="bodies"></div>
+      <div class="row" style="margin-top:10px">
+        <input type="text" id="q" placeholder="Filter by id, type or name" style="flex:1;min-width:150px">
+        <button id="all">All</button><button id="none">None</button><button id="inv">Invert</button>
+      </div>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div class="card" id="outcard" hidden>
+      <div class="msg" style="margin:0">Download isn’t available in this view. Copy the XML and save it as a .xml file:</div>
+      <textarea id="out" readonly></textarea>
+    </div>
+  </div>
+</div>
+
+<div class="bar" id="bar" hidden><div class="in">
+  <div class="s" id="sum"></div>
+  <button id="copy">Copy</button>
+  <button class="pri" id="dl">Download</button>
+</div></div>
+
+<script>
+/* Homepage link: from disk go to ../index.html, otherwise use the full site address so it never lands on a file listing */
+(function(){
+  var home=location.protocol==="file:"?"../index.html":(/\.github\.io$/i.test(location.hostname)?location.origin+"/"+location.pathname.split("/")[1]+"/":"https://anda2012.github.io/Juno_New_Origins_Tools/");
+  document.querySelectorAll(".homelink").forEach(function(a){a.href=home;});
+})();
+const $=id=>document.getElementById(id);
+let doc=null, parts=[], conns=[], bodyOf={}, adj={}, rootId=null, inc=new Set(), fileName='craft.xml', result=null;
+
+function fmt(v){
+  let n=Number(v.toPrecision(7)); if(n===0||!isFinite(n))return "0";
+  const e=Math.floor(Math.log10(Math.abs(n)));
+  if(e<-5||e>=7){const [m,x]=n.toExponential().split("e");const sg=x[0]==="-"?"-":"+";return m+"E"+sg+x.replace(/[+-]/,"").padStart(2,"0");}
+  return String(n);
+}
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+function load(text,name){
+  $("err").hidden=true;
+  const d=new DOMParser().parseFromString(text,"application/xml");
+  if(d.querySelector("parsererror")){return fail("That file isn’t valid XML.");}
+  const r=d.documentElement;
+  if(r.tagName!=="Craft"){return fail(r.tagName==="DesignerParts"?"That’s already a subassembly file. Choose a craft file.":"Not a craft file (root element is <"+r.tagName+">).");}
+  const asm=r.querySelector(":scope > Assembly"); if(!asm)return fail("No <Assembly> found in the craft.");
+  doc=r; fileName=name;
+  parts=[...asm.querySelector(":scope > Parts").children];
+  conns=[...asm.querySelector(":scope > Connections").children];
+  bodyOf={};
+  const b=asm.querySelector(":scope > Bodies");
+  if(b)for(const x of b.children)for(const id of (x.getAttribute("partIds")||"").split(","))if(id)bodyOf[id]=x.getAttribute("id");
+  const rp=parts.find(p=>p.getAttribute("rootPart")==="true"); rootId=rp?rp.getAttribute("id"):null;
+  inc=new Set(parts.map(p=>p.getAttribute("id")));
+  $("name").value=r.getAttribute("name")||name.replace(/\.xml$/i,"");
+  $("app").hidden=false; $("bar").hidden=false; $("outcard").hidden=true;
+  buildChips(); render();
+}
+function fail(m){$("err").textContent=m;$("err").hidden=false;$("app").hidden=true;$("bar").hidden=true;}
+
+function analyse(){
+  const ids=new Set(inc), status={};
+  const keep=parts.filter(p=>ids.has(p.getAttribute("id")));
+  let root=keep.find(p=>p.getAttribute("id")===rootId)||keep.find(p=>p.querySelector(":scope > CommandPod"))||keep[0];
+  const a={}; for(const i of ids)a[i]=[];
+  for(const c of conns){const A=c.getAttribute("partA"),B=c.getAttribute("partB");if(ids.has(A)&&ids.has(B)){a[A].push(B);a[B].push(A);}}
+  const order=[], seen=new Set();
+  if(root){const q=[root.getAttribute("id")];seen.add(q[0]);while(q.length){const c=q.shift();order.push(c);for(const n of a[c])if(!seen.has(n)){seen.add(n);q.push(n);}}}
+  for(const p of parts){const i=p.getAttribute("id");status[i]=!ids.has(i)?"out":seen.has(i)?"in":"orph";}
+  return {status,order,root,keep};
+}
+
+function render(){
+  const {status,root}=analyse(), q=$("q").value.trim().toLowerCase(), keepOrph=$("orph").checked;
+  const L=$("list"); L.innerHTML="";
+  let nIn=0,nOr=0;
+  for(const p of parts){
+    const id=p.getAttribute("id"),st=status[id];
+    if(st==="in")nIn++; if(st==="orph")nOr++;
+    const txt=(id+" "+p.getAttribute("partType")+" "+(p.getAttribute("name")||"")).toLowerCase();
+    if(q&&!txt.includes(q))continue;
+    const d=document.createElement("label"); d.className="p "+st;
+    const tag=st==="in"?["in","included"]:st==="out"?["out","left out"]:keepOrph?["orph","disconnected, kept"]:["orph","dropped: disconnected"];
+    d.innerHTML='<input type="checkbox" '+(inc.has(id)?"checked":"")+'><div class="m"><div class="t">'+esc(p.getAttribute("partType"))+
+      '</div><div class="n">#'+id+(bodyOf[id]?" · body "+bodyOf[id]:"")+(p.getAttribute("name")?" · "+esc(p.getAttribute("name")):"")+(id===rootId?" · root":"")+
+      '</div></div><span class="tag '+tag[0]+'">'+tag[1]+'</span>';
+    d.querySelector("input").onchange=e=>{e.target.checked?inc.add(id):inc.delete(id);render();};
+    L.appendChild(d);
+  }
+  const total=parts.length, final=keepOrph?nIn+nOr:nIn;
+  $("sum").innerHTML="<b>"+final+"</b> of "+total+" parts"+(nOr&&!keepOrph?"<br><span style='color:var(--warn)'>"+nOr+" dropped as disconnected</span>":"");
+  $("dl").disabled=$("copy").disabled=final===0;
+  for(const c of document.querySelectorAll("#types .chip,#bodies .chip")){
+    const ids=c.dataset.ids.split(","); c.classList.toggle("off",!ids.some(i=>inc.has(i)));
+  }
+}
+
+function buildChips(){
+  const T={},B={};
+  for(const p of parts){const id=p.getAttribute("id");(T[p.getAttribute("partType")]??=[]).push(id);if(bodyOf[id])(B[bodyOf[id]]??=[]).push(id);}
+  const mk=(box,map,label)=>{box.innerHTML="";for(const k in map){const c=document.createElement("button");c.className="chip";c.dataset.ids=map[k].join(",");c.textContent=label(k)+" ×"+map[k].length;
+    c.onclick=()=>{const on=map[k].some(i=>inc.has(i));map[k].forEach(i=>on?inc.delete(i):inc.add(i));render();};box.appendChild(c);}};
+  mk($("types"),T,k=>k);
+  mk($("bodies"),B,k=>"Body "+k);
+  $("bh").hidden=$("bodies").hidden=!Object.keys(B).length;
+}
+
+function build(){
+  const {order,root,keep,status}=analyse(), keepOrph=$("orph").checked;
+  let final=keepOrph?keep:order.map(i=>keep.find(p=>p.getAttribute("id")===i));
+  if(!final.length)return null;
+  const finalIds=new Set(final.map(p=>p.getAttribute("id")));
+  const pods=new Set(final.filter(p=>p.querySelector(":scope > CommandPod")).map(p=>p.getAttribute("id")));
+  const clones=final.map(p=>p.cloneNode(true));
+  const pos=clones.map(p=>p.getAttribute("position").split(",").map(Number));
+  let mean=[0,0,0];
+  if($("center").checked)mean=[0,1,2].map(i=>pos.reduce((s,v)=>s+v[i],0)/pos.length);
+  clones.forEach((p,k)=>{
+    if($("center").checked)p.setAttribute("position",pos[k].map((v,i)=>fmt(v-mean[i])).join(","));
+    const cp=p.getAttribute("commandPodId"); if(cp!==null&&!pods.has(cp))p.removeAttribute("commandPodId");
+    const ft=p.querySelector(":scope > FuelTank"); if(ft&&!ft.hasAttribute("subPriority"))ft.setAttribute("subPriority","2");
+    if(root&&p.getAttribute("id")===root.getAttribute("id"))p.setAttribute("rootPart","true");
+  });
+  const cl=conns.filter(c=>finalIds.has(c.getAttribute("partA"))&&finalIds.has(c.getAttribute("partB"))).map(c=>{const x=c.cloneNode(true);[...x.children].forEach(ch=>ch.tagName==="BodyJoint"&&x.removeChild(ch));return x;});
+  const ser=(e,d)=>{const pad="  ".repeat(d),at=[...e.attributes].map(a=>" "+a.name+'="'+esc(a.value)+'"').join("");
+    const kids=[...e.children];
+    if(!kids.length){const t=e.textContent.trim();return t?pad+"<"+e.tagName+at+">"+esc(t)+"</"+e.tagName+">":pad+"<"+e.tagName+at+" />";}
+    return pad+"<"+e.tagName+at+">\n"+kids.map(k=>ser(k,d+1)).join("\n")+"\n"+pad+"</"+e.tagName+">";};
+  const name=$("name").value.trim()||"Subassembly";
+  const ind=(arr,d)=>arr.length?arr.map(x=>ser(x,d)).join("\n")+"\n":"";
+  return '<?xml version="1.0" encoding="utf-8"?>\n<DesignerParts>\n  <DesignerPart name="'+esc(name)+'" category="Sub Assemblies" description="" order="0" showInDesigner="true">\n    <Assembly xmlVersion="'+esc(doc.getAttribute("xmlVersion")||"15")+'">\n      <Parts>\n'+ind(clones,4+1)+'      </Parts>\n      <Connections>\n'+ind(cl,5)+'      </Connections>\n      <Collisions />\n      <Bodies />\n    </Assembly>\n  </DesignerPart>\n</DesignerParts>\n';
+}
+
+function outName(){return ($("name").value.trim()||"Subassembly").replace(/[^\w\-. ]+/g,"").replace(/\s+/g,"_")+"_subassembly.xml";}
+
+$("dl").onclick=async()=>{
+  const xml=build(); if(!xml)return;
+  try{
+    const dls=window.claude&&await claude.use("downloads");
+    if(dls){await dls.save({filename:outName(),data:xml});return;}
+  }catch(e){if(e&&e.code==="declined")return;}
+  try{ // works when the page is opened as a normal local file
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([xml],{type:"text/xml"}));a.download=outName();document.body.appendChild(a);a.click();a.remove();
+    return;
+  }catch(e){}
+  $("out").value=xml;$("outcard").hidden=false;
+};
+$("copy").onclick=async()=>{
+  const xml=build(); if(!xml)return;
+  $("out").value=xml;
+  try{await navigator.clipboard.writeText(xml);$("copy").textContent="Copied ✓";setTimeout(()=>$("copy").textContent="Copy",1500);}
+  catch(e){$("outcard").hidden=false;$("out").select();}
+};
+$("all").onclick=()=>{parts.forEach(p=>inc.add(p.getAttribute("id")));render();};
+$("none").onclick=()=>{inc.clear();render();};
+$("inv").onclick=()=>{parts.forEach(p=>{const i=p.getAttribute("id");inc.has(i)?inc.delete(i):inc.add(i);});render();};
+$("q").oninput=render; $("orph").onchange=render;
+
+const drop=$("drop"),fi=$("file");
+drop.onclick=()=>fi.click();
+fi.onchange=()=>fi.files[0]&&readFile(fi.files[0]);
+drop.ondragover=e=>{e.preventDefault();drop.classList.add("over");};
+drop.ondragleave=()=>drop.classList.remove("over");
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove("over");e.dataTransfer.files[0]&&readFile(e.dataTransfer.files[0]);};
+function readFile(f){const r=new FileReader();r.onload=()=>load(r.result,f.name);r.readAsText(f);}
+</script>
+</body>
+</html>
