@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Juno: New Origins Tools</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#667085;--bd:#dde1e7;--ac:#2d6cdf;--chip:#eaf0fc;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--card:#1d2128;--tx:#e8eaee;--mut:#98a1b0;--bd:#2d333d;--ac:#6b9bff;--chip:#222b3d;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:22px 14px 40px}
+header{margin-bottom:16px}
+h1{margin:6px 0 4px;font-size:26px}
+.sub{color:var(--mut);margin:0}
+input{font:inherit;width:100%;margin:14px 0 6px;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx)}
+.count{color:var(--mut);font-size:13px;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+a.app{display:flex;flex-direction:column;gap:6px;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+a.app:hover,a.app:focus-visible{border-color:var(--ac);transform:translateY(-2px);outline:none}
+.ic{font-size:30px;line-height:1}
+.t{font-weight:650;font-size:17px}
+.d{color:var(--mut);font-size:14px;flex:1}
+.go{color:var(--ac);font-size:14px;font-weight:600}
+.empty{color:var(--mut);text-align:center;padding:30px 0}
+footer{margin-top:28px;color:var(--mut);font-size:12px;text-align:center}
+footer a{color:var(--ac)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🚀 Juno: New Origins Tools</h1>
+    <p class="sub">Small browser tools for Juno: New Origins. Everything runs locally in your browser.</p>
+    <input id="q" type="search" placeholder="Search tools" autocomplete="off">
+    <p class="count" id="count">Loading tools…</p>
+  </header>
+  <main class="grid" id="grid"></main>
+  <footer id="foot"></footer>
+</div>
+
+<script>
+/* How this page works
+   It asks GitHub which folders exist in this repo and shows every folder that has an index.html as an app.
+   To add an app: create a folder with an index.html. Optionally add an app.json beside it:
+   {"title":"My Tool","description":"What it does","icon":"🛰️"}
+   Without app.json the folder name is used as the title. */
+
+const FALLBACK_OWNER="Anda2012", FALLBACK_REPO="Juno_New_Origins_Tools";
+// Shown if GitHub can't be reached (rate limit, offline, local testing)
+const FALLBACK_APPS=[{folder:"Craft_to_Subassembly",title:"Craft → Subassembly",description:"Turn a craft file into a subassembly, choosing which parts to leave out.",icon:"🛠️"}];
+
+const onPages=/\.github\.io$/i.test(location.hostname);
+const OWNER=onPages?location.hostname.split(".")[0]:FALLBACK_OWNER;
+const REPO=onPages&&location.pathname.split("/")[1]?location.pathname.split("/")[1]:FALLBACK_REPO;
+const $=id=>document.getElementById(id);
+let apps=[];
+
+const pretty=f=>f.replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
+
+async function discover(){
+  const key="juno-tools-"+OWNER+"-"+REPO;
+  try{const c=JSON.parse(localStorage.getItem(key)||"null");if(c&&Date.now()-c.t<10*60*1000)return c.apps;}catch(e){}
+  const r=await fetch("https://api.github.com/repos/"+OWNER+"/"+REPO+"/git/trees/HEAD?recursive=1");
+  if(!r.ok)throw new Error("GitHub "+r.status);
+  const tree=(await r.json()).tree||[];
+  const folders=[...new Set(tree.filter(n=>n.type==="blob"&&/^[^/.][^/]*\/index\.html$/i.test(n.path)).map(n=>n.path.split("/")[0]))];
+  const hasJson=new Set(tree.filter(n=>/^[^/]+\/app\.json$/i.test(n.path)).map(n=>n.path.split("/")[0]));
+  const list=await Promise.all(folders.map(async f=>{
+    const a={folder:f,title:pretty(f),description:"",icon:"🧩"};
+    if(hasJson.has(f)){
+      try{const j=await (await fetch(encodeURIComponent(f)+"/app.json")).json();
+        if(j.title)a.title=String(j.title);if(j.description)a.description=String(j.description);if(j.icon)a.icon=String(j.icon);}catch(e){}
+    }
+    return a;
+  }));
+  list.sort((a,b)=>a.title.localeCompare(b.title));
+  try{localStorage.setItem(key,JSON.stringify({t:Date.now(),apps:list}));}catch(e){}
+  return list;
+}
+
+function render(){
+  const q=$("q").value.trim().toLowerCase(), g=$("grid");
+  const shown=apps.filter(a=>(a.title+" "+a.description+" "+a.folder).toLowerCase().includes(q));
+  g.innerHTML="";
+  for(const a of shown){
+    const el=document.createElement("a");
+    el.className="app";el.href=(location.protocol==="file:"?"":onPages?"":"https://anda2012.github.io/Juno_New_Origins_Tools/")+encodeURIComponent(a.folder)+(location.protocol==="file:"?"/index.html":"/");
+    const ic=document.createElement("div");ic.className="ic";ic.textContent=a.icon;
+    const t=document.createElement("div");t.className="t";t.textContent=a.title;
+    const d=document.createElement("div");d.className="d";d.textContent=a.description;
+    const go=document.createElement("div");go.className="go";go.textContent="Open →";
+    el.append(ic,t,d,go);g.appendChild(el);
+  }
+  $("count").textContent=apps.length?(shown.length===apps.length?apps.length+(apps.length===1?" tool":" tools"):shown.length+" of "+apps.length+" tools"):"";
+  if(apps.length&&!shown.length){g.innerHTML='<div class="empty">No tools match your search.</div>';}
+}
+
+(async()=>{
+  try{apps=await discover();}
+  catch(e){apps=FALLBACK_APPS;$("foot").textContent="Showing the saved tool list (couldn’t reach GitHub).";}
+  if(!apps.length){$("count").textContent="No tools found yet. Add a folder with an index.html.";}
+  render();
+  if(onPages||true){$("foot").innerHTML+=($("foot").textContent?" · ":"")+'<a href="https://github.com/'+OWNER+'/'+REPO+'">Source on GitHub</a>';}
+})();
+$("q").oninput=render;
+</script>
+</body>
+</html>
