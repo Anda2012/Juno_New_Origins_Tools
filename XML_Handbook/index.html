@@ -37,7 +37,8 @@ h2{font-size:15px;margin:0 0 6px}
 .list{max-height:60vh;overflow-y:auto}
 pre,code{background:var(--code);border-radius:6px;font:12.5px ui-monospace,Menlo,monospace}
 code{padding:1px 4px}pre{padding:10px;overflow-x:auto;white-space:pre}
-.out{position:sticky;bottom:0}
+.obox{margin-top:10px}.ol{font-weight:650;margin-bottom:4px}.ol small{font-weight:400;color:var(--mut)}
+.orow{display:flex;gap:8px;align-items:flex-start}.orow pre{flex:1;margin:0;white-space:pre-wrap;word-break:break-word;min-width:0}
 .doc table{border-collapse:collapse;display:block;overflow-x:auto;margin:8px 0}
 .doc td,.doc th{border:1px solid var(--bd);padding:4px 8px;text-align:left;font-size:13px}
 .doc h3,.doc h4{margin:14px 0 4px}.doc p{margin:6px 0}
@@ -52,7 +53,7 @@ code{padding:1px 4px}pre{padding:10px;overflow-x:auto;white-space:pre}
 <nav class="top"><a href="../index.html" class="homelink">← Home</a><span><a href="../index.html" class="homelink crumb">All Juno tools</a> › XML Handbook</span></nav>
 <div class="wrap">
 <h1>XML Handbook</h1>
-<p class="sub">Pick a part type and get only the modifiers and properties that fit it, as ready-to-paste lines like Config: dragScale="0". Properties with no in-game tooltip are marked as hidden / Tinker.</p>
+<p class="sub">Pick a part type and get only the modifiers and properties that fit it, as code boxes you copy into each element, like <b>Config</b> with dragScale="0" massScale="0.5". Properties with no in-game tooltip are marked as hidden / Tinker.</p>
 <div class="tabs"><button data-t="build" class="on">Builder</button><button data-t="ref">Reference</button><button data-t="inp">Script properties</button><button data-t="help">How to use</button></div>
 
 <section id="t-build">
@@ -71,9 +72,10 @@ code{padding:1px 4px}pre{padding:10px;overflow-x:auto;white-space:pre}
   <div class="chips" id="mall"></div>
  </div>
  <div id="cards"></div>
- <div class="card out">
-  <div class="row"><b style="flex:1">Output</b><select id="bs" style="max-width:150px"><option value="T">True / False</option><option value="t">true / false</option></select><button id="copy" class="pri">Copy</button><button id="dl">Download</button></div>
-  <pre id="xml"></pre>
+ <div class="card">
+  <div class="row"><b style="flex:1">Output</b><select id="bs" style="max-width:150px"><option value="T">True / False</option><option value="t">true / false</option></select></div>
+  <p class="hint" style="margin:6px 0 0">Copy each box and add it to the matching element of your part.</p>
+  <div id="boxes"></div>
  </div>
 </section>
 
@@ -91,7 +93,7 @@ code{padding:1px 4px}pre{padding:10px;overflow-x:auto;white-space:pre}
 
 <section id="t-help" hidden class="card doc">
  <h3>Using the output</h3>
- <p>Each line is a modifier followed by the attributes to set, for example <code>Config: dragScale="0" massScale="0.5"</code>. In the craft XML, the modifier is a child element of the part and the attributes go on it, like <code>&lt;Config dragScale="0" massScale="0.5" /&gt;</code>. If the part already has that element, add or edit the attributes there. Otherwise add the element.</p>
+ <p>Each modifier you use gets its own box with a Copy button beside it. The box holds only the attributes to add, for example <code>dragScale="0" massScale="0.5"</code> for Config. In the craft XML, find the part’s matching element (like <code>&lt;Config … /&gt;</code>) and paste the attributes inside it. If the part doesn’t have that element yet, add <code>&lt;Config /&gt;</code> and paste inside. If an attribute already exists, change its value instead of adding it twice.</p>
  <h3>Compatible attributes only</h3>
  <p>Choose a part type and the Modifiers box lists the ones that part normally uses, plus a few that work on any part (<code>Part</code>, <code>Config</code>, <code>InputController</code>, <code>InputBasedActivator</code>, <code>FlightProgram</code>). The game lets you add any modifier to any part, so tick <b>Show every modifier</b> if you need another one.</p>
  <h3>Hidden / Tinker properties</h3>
@@ -165,16 +167,17 @@ function renderCards(){
   }).join("");
   out();
 }
+let OUT=[];
 function out(){
-  const up=$("bs").value==="T",L=[];
+  const up=$("bs").value==="T";OUT=[];
   for(const m of S.open){
     const a=[];
     for(const p of D.mods[m].props){const v=(S.vals[m]||{})[p.n];if(!v||!v.on)continue;
       let x=v.val;if(p.t==="bool")x=up?(x==="true"?"True":"False"):x;
       a.push(p.n+'="'+esc(x)+'"');}
-    if(a.length)L.push(m+": "+a.join(" "));
+    if(a.length)OUT.push([m,a.join(" ")]);
   }
-  $("xml").textContent=L.length?L.join("\n"):"Tick properties above and they appear here, for example:\nConfig: dragScale=\"0\" massScale=\"0.5\"";
+  $("boxes").innerHTML=OUT.length?OUT.map((o,i)=>'<div class="obox"><div class="ol">'+esc(o[0])+' <small>add to the '+esc(o[0])+' element</small></div><div class="orow"><pre>'+o[1]+'</pre><button data-cp="'+i+'">Copy</button></div></div>').join(""):'<p class="hint">Tick properties above and a box appears here for each modifier, for example <b>Config</b> with <code>dragScale="0" massScale="0.5"</code>.</p>';
 }
 function setProp(m,name,on,val){
   const def=D.mods[m].props.find(x=>x.n===name),st=S.vals[m]=S.vals[m]||{};
@@ -199,6 +202,7 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("click",e=>{
   const t=e.target.closest("button");if(!t)return;
+  if(t.dataset.cp!==undefined)copyText(t,OUT[+t.dataset.cp][1].replace(/&quot;/g,'"').replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&amp;/g,"&"));
   if(t.dataset.cat){cat=t.dataset.cat;renderParts();}
   if(t.dataset.part!==undefined){
     S.part=D.parts[+t.dataset.part];S.open=[];
@@ -211,8 +215,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.ref)showRef(t.dataset.ref);
   if(t.dataset.addref){const m=t.dataset.addref;if(!S.open.includes(m))S.open.push(m);renderChips();renderCards();document.querySelector('[data-t="build"]').click();}
 });
-$("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("xml").textContent);$("copy").textContent="Copied ✓";setTimeout(()=>$("copy").textContent="Copy",1500);}catch(e){const r=document.createRange();r.selectNode($("xml"));getSelection().removeAllRanges();getSelection().addRange(r);}};
-$("dl").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([$("xml").textContent],{type:"text/plain"}));a.download=((S.part&&S.part.n)||"part").replace(/[^\w-]+/g,"_")+"_attributes.txt";document.body.appendChild(a);a.click();a.remove();}catch(e){}};
+async function copyText(btn,txt){try{await navigator.clipboard.writeText(txt);const o=btn.textContent;btn.textContent="Copied ✓";setTimeout(()=>btn.textContent=o,1500);}catch(e){const r=document.createRange();r.selectNode(btn.previousElementSibling);getSelection().removeAllRanges();getSelection().addRange(r);}}
 
 /* reference */
 function md(s){
