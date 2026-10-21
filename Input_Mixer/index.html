@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Input Mixer</title>
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../favicon.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#667085;--bd:#dde1e7;--ac:#2d6cdf;--act:#fff;--chip:#eaf0fc;--code:#f0f2f5;--ok:#1f8a4c;--bad:#c0392b;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--card:#1d2128;--tx:#e8eaee;--mut:#98a1b0;--bd:#2d333d;--ac:#6b9bff;--act:#0d1117;--chip:#222b3d;--code:#0f1216;--ok:#4cc17f;--bad:#ef7a6d;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:12px;background:var(--card);border-bottom:1px solid var(--bd);padding:10px 14px}
+.top a{display:inline-flex;text-decoration:none;color:var(--ac);font-weight:650;padding:6px 10px;border:1px solid var(--bd);border-radius:9px;background:var(--bg)}
+.top a.crumb{border:0;background:none;padding:0;font-weight:500}.top span{color:var(--mut);font-size:14px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--card);z-index:19}
+.wrap{max-width:900px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:4px 0}h2{font-size:15px;margin:0 0 8px}.sub,.hint{color:var(--mut);font-size:13px}.sub{margin:0 0 10px}
+button,select,input,textarea{font:inherit;color:var(--tx)}
+button{border:1px solid var(--bd);background:var(--card);border-radius:9px;padding:7px 11px;cursor:pointer}
+button.pri,.chip.on{background:var(--ac);color:var(--act);border-color:var(--ac)}
+input[type=text],input[type=number],input:not([type]),select,textarea{border:1px solid var(--bd);border-radius:8px;background:var(--bg);padding:7px 9px;width:100%}
+textarea{font:14px ui-monospace,Menlo,monospace;min-height:88px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}.row>*{flex:1;min-width:110px}.row>button{flex:none;min-width:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{background:var(--chip);border:0;border-radius:99px;padding:4px 10px;font-size:13px}
+.list{max-height:190px;overflow-y:auto}
+pre,code{background:var(--code);border-radius:6px;font:12.5px ui-monospace,Menlo,monospace}code{padding:1px 4px}
+pre{padding:10px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin:6px 0}
+label.f{display:block;font-size:12px;color:var(--mut)}
+.st{font-size:13px;margin-top:6px}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.var{display:grid;grid-template-columns:130px 1fr 80px;gap:8px;align-items:center;margin-top:6px;font-size:13px}
+.var b{word-break:break-all}
+.res{font-size:20px;font-weight:700;margin-top:10px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<nav class="top"><a href="../index.html" class="homelink">← Home</a><span><a href="../index.html" class="homelink crumb">All Juno tools</a> › Input Mixer</span></nav>
+<div class="wrap">
+<h1>Input Mixer</h1>
+<p class="sub">Build the <code>input</code> expression for rotators, wings, fins, activators and anything else driven by an InputController. Pick inputs, mix them, test the result, and copy the line.</p>
+
+<div class="card">
+ <h2>1 · Expression</h2>
+ <textarea id="ex" spellcheck="false" placeholder="Build it below, or type it here. Example: clamp(Pitch + Roll, -1, 1)"></textarea>
+ <div class="st" id="st"></div>
+ <div class="row"><select id="preset"><option value="">Start from a preset…</option></select><button id="clr">Clear</button></div>
+</div>
+
+<div class="card">
+ <h2>2 · Add an input</h2>
+ <div class="chips" id="cats"></div>
+ <input id="pick" placeholder="Search" style="margin-top:8px">
+ <div class="chips list" id="picks"></div>
+ <div id="opts" hidden>
+  <p class="hint" style="margin:10px 0 0">Selected: <code id="sel"></code></p>
+  <div class="row">
+   <div><label class="f">Gain (multiplier)</label><input id="gain" type="number" step="any" value="1"></div>
+   <div><label class="f">Sign</label><select id="sign"><option value="+">Add (+)</option><option value="-">Subtract (−)</option></select></div>
+   <div><label class="f">Shape</label><select id="shape"><option value="">As is</option><option value="abs">abs (always positive)</option><option value="clamp01">clamp01 (0 to 1)</option><option value="sign">sign (−1, 0 or 1)</option><option value="sq">Squared, keep sign (softer centre)</option><option value="inv">Invert (1 − x)</option></select></div>
+   <div id="vecw" hidden><label class="f">Vector part</label><select id="vec"><option value="magnitude">length (magnitude)</option><option value="x">x</option><option value="y">y</option><option value="z">z</option></select></div>
+  </div>
+  <div class="row" id="partrow" hidden>
+   <div><label class="f">Which part?</label><select id="psel"><option value="">This part</option><option value="name">Part by name</option><option value="id">Part by id ($)</option><option value="all">Any part with this modifier (*)</option></select></div>
+   <div id="pvalw" hidden><label class="f" id="pvall">Part name</label><input id="pval"></div>
+   <div><label class="f">Modifier id (optional)</label><input id="mid" placeholder="custom id of the modifier"></div>
+  </div>
+  <div class="row"><button class="pri" id="addterm">Add to expression</button><button id="insert">Insert at cursor</button></div>
+ </div>
+ <div id="constrow" hidden><div class="row"><input id="cval" type="number" step="any" placeholder="Number, e.g. 0.5"><button id="addc">Add number</button></div>
+ <div class="row"><input id="vzname" placeholder="Vizzy variable name (from a FlightProgram)"><label class="hint" style="display:flex;gap:6px;align-items:center;flex:none"><input type="checkbox" id="vzvec" style="width:auto"> vector</label><button id="addvz">Add variable</button></div></div>
+</div>
+
+<div class="card">
+ <h2>3 · Functions &amp; wrap</h2>
+ <div class="row"><button data-wrap="clamp(@, -1, 1)">clamp −1…1</button><button data-wrap="clamp01(@)">clamp01</button><button data-wrap="abs(@)">abs</button><button data-wrap="-(@)">negate</button><button data-wrap="smoothstep(0, 1, @)">smoothstep</button><button data-wrap="(@)">( )</button></div>
+ <p class="hint" style="margin:8px 0 0">Wraps the whole expression. Tap a function to insert it at the cursor:</p>
+ <div class="chips" id="fns"></div>
+ <div class="chips" id="ops"></div>
+ <p class="hint" id="fhint" style="margin:6px 0 0"></p>
+</div>
+
+<div class="card">
+ <h2>4 · Test it</h2>
+ <p class="hint" style="margin:0">Set pretend values for each input and see what the expression outputs.</p>
+ <div id="vars"></div>
+ <div class="res" id="res"></div>
+</div>
+
+<div class="card">
+ <h2>5 · Output</h2>
+ <div class="row"><div><label class="f">What does it drive?</label><select id="target">
+  <option value="Rotator">InputController → hinge / rotator (inputId Rotator)</option>
+  <option value="Activator">InputController → activator (inputId Activator)</option>
+  <option value="custom">InputController → custom inputId</option>
+  <option value="cs">ControlSurface input property</option>
+  <option value="raw">Just the expression</option></select></div>
+  <div id="cidw" hidden><label class="f">inputId</label><input id="cid"></div></div>
+ <div id="icopts">
+ <div class="row">
+  <div><label class="f">type</label><select id="o_type"><option value="">(default)</option><option>Standard</option><option>LerpFullAxis</option><option>LerpPositiveAxis</option><option>LerpNegativeAxis</option></select></div>
+  <div><label class="f">min</label><input id="o_min" type="number" step="any"></div>
+  <div><label class="f">max</label><input id="o_max" type="number" step="any"></div>
+  <div><label class="f">inputAxisRange</label><input id="o_range" placeholder="min,zero,max"></div>
+ </div>
+ <div class="row">
+  <div><label class="f">invert</label><select id="o_invert"><option value="">(default)</option><option>True</option><option>False</option></select></div>
+  <div><label class="f">invertOnMirror</label><select id="o_mirror"><option value="">(default)</option><option>True</option><option>False</option></select></div>
+  <div><label class="f">invertType</label><select id="o_itype"><option value="">(default)</option><option>Output</option><option>Axis</option></select></div>
+  <div><label class="f">activationGroup</label><input id="o_ag" type="number" step="1"></div>
+ </div>
+ <div class="row">
+  <div><label class="f">ignorePartActivationState</label><select id="o_ignore"><option value="">(default)</option><option>True</option><option>False</option></select></div>
+  <div><label class="f">zeroOnDeactivate</label><select id="o_zero"><option value="">(default)</option><option>True</option><option>False</option></select></div>
+ </div></div>
+ <p class="hint" style="margin:10px 0 0">Line format</p><pre id="o_line"></pre>
+ <p class="hint" style="margin:6px 0 0">XML element</p><pre id="o_xml"></pre>
+ <div class="row"><button class="pri" id="c_line">Copy line</button><button id="c_xml">Copy XML</button><button id="c_ex">Copy expression only</button></div>
+ <p class="hint" id="thint" style="margin:8px 0 0"></p>
+</div>
+</div>
+
+<script type="application/json" id="data">{"controls":["Brake","EvaAnalogJump","EvaMoveFwdAft","EvaMoveUpDown","EvaPitch","EvaRoll","EvaShootTether","EvaStrafe","EvaTetherLength","EvaTetherLengthOffset","EvaTurn","EvaWalk","OffsetBrake","OffsetPitch","OffsetRoll","OffsetSlider1","OffsetSlider2","OffsetSlider3","OffsetSlider4","OffsetTranslateForward","OffsetTranslateRight","OffsetTranslateUp","OffsetYaw","Pitch","PitchInputReceived","Roll","RollInputReceived","Slider1","Slider2","Slider3","Slider4","Throttle","TranslateForward","TranslateRight","TranslateUp","TranslationModeEnabled","Yaw","YawInputReceived"],"fd":[["Acceleration","vector"],["AccelerationMagnitude","double"],["AltitudeAboveGroundLevel","double"],["AltitudeAboveSeaLevel","double"],["AltitudeAboveTerrain","double"],["AngleOfAttack","double"],["AngularVelocity","vector"],["AngularVelocityMagnitude","double"],["BankAngle","double"],["CraftForward","vector"],["CraftRight","vector"],["CraftUp","vector"],["CurrentEngineThrust","float"],["CurrentEngineThrustUnscaled","float"],["CurrentMass","float"],["CurrentMassUnscaled","float"],["CurrentReactionControlNozzleThrust","float"],["DeltaVStage","double"],["DragAccelerationMagnitude","float"],["East","vector"],["FuelMass","float"],["Gravity","vector"],["GravityMagnitude","float"],["Grounded","bool"],["Heading","double"],["InWater","bool"],["LateralSurfaceVelocity","double"],["MachNumber","float"],["MaxActiveEngineThrust","float"],["MaxActiveEngineThrustUnscaled","float"],["North","vector"],["ParentPlanetOcclusion","float"],["Pitch","double"],["Position","vector"],["PositionNormalized","vector"],["RemainingBattery","float"],["RemainingFuelInStage","float"],["RemainingMonopropellant","float"],["SideSlip","double"],["SolarRadiationDirection","vector"],["SolarRadiationIntensity","double"],["SupportsWarpBurn","bool"],["SurfaceVelocity","vector"],["SurfaceVelocityMagnitude","double"],["TimeDelta","double"],["TimeMultiplier","double"],["TimeReal","double"],["Velocity","vector"],["VelocityMagnitude","double"],["VerticalSurfaceVelocity","double"],["WeightedThrottleResponse","float"],["WeightedThrottleResponseTime","float"]],"od":[["ApoapsisAltitude","double"],["ApoapsisTime","double"],["BurnNodeDeltaV","vector"],["Eccentricity","double"],["Inclination","double"],["PeriapsisAltitude","double"],["PeriapsisTime","double"],["Period","double"],["MeanAnomaly","double"],["MeanMotion","double"],["PeriapsisArgument","double"],["RightAscension","double"],["TrueAnomaly","double"],["SemiMajorAxis","double"],["SemiMinorAxis","double"]],"funcs":[["abs","x","The absolute (positive) value of x."],["ceil","x","x rounded up to an integer."],["clamp","x, min, max","x clamped between min and max."],["clamp01","x","Equivalent to clamp(x, 0, 1)."],["deltaangle","a, b","The shortest angle delta between angles a and b in degrees."],["exp","x","Returns e raised to the power of x."],["floor","x","x rounded down to an integer."],["inverselerp","a, b, x","Calculates the linear parameter t that produces the interpolant value within the range [a, b]."],["lerp","a, b, t","Linearly interpolates between a and b, by a proportion of t."],["lerpangle","a, b, t","Similar to lerp, but interpolates correctly when values pass 360 degrees."],["lerpunclamped","a, b, t","Similar to lerp, but doesn't clamp the value between a and b."],["log","x, p","The logarithm of x in base p."],["log10","x","Equivalent to log(x, 10)."],["pingpong","x, l","\"Ping-pongs\" the value x so it is never larger than l and never less than 0."],["max","a, b","The largest value between a and b."],["min","a, b","The smallest value between a and b."],["pow","x, p","x raised to the power of p."],["repeat","x, l","Loops the value x so it is never larger than l and never less than 0. Effectively equivalent to a modulus function, always returns a positive result."],["round","x","Rounds x to the nearest integer."],["sign","x","The sign of x (1 if x positive, -1 if x negative)"],["smoothstep","a, b, t","Similar to lerp, but with smoothing at the ends."],["sqrt","x","The square root of x."],["sin","x","The sine of x (radians)"],["cos","x","The cosine of x (radians)"],["tan","x","The tangent of x (radians)"],["asin","x","The arc-sine of x (radians)"],["acos","x","The arc-cosine of x (radians)"],["atan","x","The arc-tangent of x (radians)"]],"vfuncs":[["angle","Vector from, Vector to","The difference in angle between two vectors (radians)"],["clampMagnitude","Vector vector, Number maxLength","A vector pointing in the same direction but with the indicated magnitude"],["cross","Vector lhs, Vector rhs","The cross product of two vectors"],["distance","Vector a, Vector b","The distance between the positions pointed at by two vectors"],["dot","Vector lhs, Vector rhs","The dot product of two vectors"],["exclude","Vector excludeThis, Vector fromThat","A vector with the components in the direction of fromThat removed, similar to projectOnPlane"],["isNaN","Vector v","Checks if a vector is NaN"],["lerp3","Vector from, Vector to, Number t","A linear interpolation between two vectors by the amount t"],["magnitude","Vector vector","The length of a vector"],["max3","Vector a, Vector b","A vector formed by the max components between the input vectors"],["min3","Vector a, Vector b","A vector formed by the min components between the input vectors"],["moveTowards","Vector current, Vector target, Number maxDistanceDelta","A vector interpolation limited by a maximum distance delta"],["normalize","Vector vector","A vector with the same direction but with a magnitude of 1"],["project","Vector vector, Vector onNormal","A vector in the direction of onNormal with the length of the projection of the vector onto it"],["projectOnPlane","Vector vector, Vector planeNormal","The projection of a vector onto a plane defined by its normal, similar to exclude"],["reflect","Vector inDirection, Vector inNormal","A mirrored vector of inDirection relative to inNormal"],["scale","Vector a, Vector b","The component-wise multiplication of a and b"],["signedAngle","Vector from, Vector to, Vector axis","The signed angle in radians between two vectors rotated around an axis"],["slerp","Vector from, Vector to, Number t","A smooth interpolation between two vectors by the amount t"],["sqrMagnitude","Vector vector","The square root of the length of the vector"],["vec","x,y,z","Constructs a vector from three scalars"],["x","Vector","The X component of the vector"],["y","Vector","The Y component of the vector"],["z","Vector","The Z component of the vector"]],"scripts":[["CameraVantage.Data.AutoCenterCamera","bool"],["CameraVantage.Data.AutoOrient","bool"],["CameraVantage.Data.DirtIntensity","float"],["CameraVantage.Data.EnabledByDefault","bool"],["CameraVantage.Data.FieldOfView","float"],["CameraVantage.Data.FieldOfViewMax","float"],["CameraVantage.Data.FieldOfViewMin","float"],["CameraVantage.Data.HideBase","bool"],["CameraVantage.Data.IsHidden","bool"],["CameraVantage.Data.IsNight","bool"],["CameraVantage.Data.LookAtCommandPod","bool"],["CameraVantage.Data.ManualRegister","bool"],["CameraVantage.Data.MassDry","float"],["CameraVantage.Data.PadPosition","bool"],["CameraVantage.Data.Scale","float"],["CameraVantage.Data.VariableZoom","bool"],["CameraVantage.AutoCenterCamera","bool"],["CameraVantage.AutoOrient","bool"],["CameraVantage.CurrentFieldOfView","float"],["CameraVantage.HidePart","bool"],["CameraVantage.LookAtCommandPod","bool"],["CameraVantage.MouseLook","bool"],["CargoBay.Data.HasBase","bool"],["CargoBay.Data.Open","bool"],["CargoBay.Data.OpenAngle","float"],["CargoBay.Data.OpenAngleSecondary","float"],["CargoBay.Data.OpenSpeed","float"],["CargoBay.Data.SoundVolume","float"],["CargoBay.Data.StartOpen","bool"],["CargoBay.OpenAmount","float"],["CommandPod.Data.AutoRecalculateStages","bool"],["CommandPod.Data.Battery","float"],["CommandPod.Data.Gyros","float"],["CommandPod.Data.CraftConfigAutoAssign","bool"],["CommandPod.Data.PowerConsumption","float"],["CommandPod.Data.ReOrientCraftOnConfigChange","bool"],["CommandPod.Data.ReplicateControls","bool"],["CommandPod.Data.ReplicateStageActivations","bool"],["CommandPod.Data.SupressSwitchedToCraftMessage","bool"],["CommandPod.Data.UseDefaultPilotSeatRotation","bool"],["CommandPod.AutoRecalculateStages","bool"],["CommandPod.IsEva","bool"],["CommandPod.IsPlayerControlled","bool"],["CommandPod.ReplicateControls","bool"],["CommandPod.ReplicateStageActivations","bool"],["CommandPod.SupressSwitchedToCraftMessage","bool"],["CommandPod.ReorientControlsOnChanges","bool"],["Decal.Data.OffsetX","float"],["Decal.Data.OffsetY","float"],["Decal.Data.TilingX","float"],["Decal.Data.TilingY","float"],["Decal.Data.UseSourceColor","bool"],["Detacher.Data.DetachOnActivated","bool"],["Detacher.Data.Force","float"],["Detacher.Data.MassDry","float"],["Detacher.Data.Scale","float"],["DockingPort.Data.MagnetForce","float"],["DockingPort.Data.MassDry","float"],["DockingPort.Data.Scale","float"],["DockingPort.Data.ScaledScale","float"],["DockingPort.DockingTime","float"],["DockingPort.InspectorDockingStatusPercentage","float"],["DockingPort.IsColliderReadyForDocking","bool"],["DockingPort.IsDocked","bool"],["DockingPort.IsDocking","bool"],["DockingPort.IsReadyForDocking","bool"],["DockingPort.IsUndocking","bool"],["ElectricMotor.Data.BrakeTorque","float"],["ElectricMotor.Data.BrakeTorqueUnscaled","float"],["ElectricMotor.Data.MassDry","float"],["ElectricMotor.Data.PowerUsagePerTorque","float"],["ElectricMotor.Data.Rpm","float"],["ElectricMotor.Data.Scale","float"],["ElectricMotor.Data.SoundVolume","float"],["ElectricMotor.Data.StaticResistance","float"],["ElectricMotor.Data.ThrottleGovernorEnabled","bool"],["ElectricMotor.Data.Torque","float"],["ElectricMotor.Data.TorqueUnscaled","float"],["ElectricMotorOld.Data.BrakeTorque","float"],["ElectricMotorOld.Data.BrakeTorqueUnscaled","float"],["ElectricMotorOld.Data.MassDry","float"],["ElectricMotorOld.Data.PowerUsagePerTorque","float"],["ElectricMotorOld.Data.Rpm","float"],["ElectricMotorOld.Data.Scale","float"],["ElectricMotorOld.Data.SoundVolume","float"],["ElectricMotorOld.Data.StaticResistance","float"],["ElectricMotorOld.Data.Torque","float"],["ElectricMotorOld.Data.TorqueUnscaled","float"],["ElectricMotorOld.CurrentRpm","float"],["ElectricMotorOld.PowerUsage","float"],["ElectricMotorOld.UsesMachNumber","bool"],["ElectricMotorOld.MaxPowerConsumption","float"],["ElectricMotor.AppliedMotorTorque","float"],["ElectricMotor.CurrentRpm","float"],["ElectricMotor.RpmReductionScalar","float"],["ElectricMotor.PowerConsumption","float"],["ElectricMotor.Torque","float"],["ElectricMotor.UsesMachNumber","bool"],["ElectricMotor.MaxPowerConsumption","float"],["EvaChair.Data.ForwardLook","float"],["EvaChair.Data.SnapRange","float"],["Fairing.Data.FairingBase","bool"],["Fairing.Data.Jettisoned","bool"],["Fairing.Data.JettisonSpin","float"],["Fairing.Data.JettisonVelocity","float"],["FlightProgram.Data.HideEditButton","bool"],["FlightProgram.Data.OutputToDevConsole","bool"],["FlightProgram.Data.SaveFlightProgram","bool"],["FlightProgram.Data.TimeSinceLaunch","double"],["FlightProgram.Data.PowerConsumptionPerInstruction","float"],["FlightProgram.Data.BroadcastPowerConsumptionPerByte","float"],["FuelTank.Data.AutoFuelType","bool"],["FuelTank.Data.Capacity","double"],["FuelTank.Data.ExplosivePower","double"],["FuelTank.Data.Fuel","double"],["FuelTank.Data.MassDry","float"],["FuelTank.Data.MassWet","float"],["FuelTank.Data.Utilization","float"],["FuelTank.IsDestroyed","bool"],["FuelTank.IsEmpty","bool"],["FuelTank.IsFull","bool"],["FuelTank.SupportsFuelTransfer","bool"],["FuelTank.TotalCapacity","double"],["FuelTank.TotalFuel","double"],["FuelTank.UsesMachNumber","bool"],["CoverEngine.Data.CoverEngine","bool"],["GaugeBase.Data.HideBase","bool"],["GaugeBase.Data.HideRim","bool"],["GaugeBase.Data.Scale","float"],["Gauge.Data.FaceZero","float"],["Gauge.Data.FlipFace","bool"],["Gauge.Data.HideFace","bool"],["Gauge.Data.HideIndicator","bool"],["Gauge.Data.IndicatorLength","float"],["Gauge.Data.IndicatorZero","float"],["Gauge.Data.MassDry","float"],["Gauge.Data.Multiplier","float"],["Gauge.Data.Scale","float"],["Generator.Data.FuelFlow","float"],["Generator.Data.FuelConsumptionScale","float"],["Generator.Data.HideBase","bool"],["Generator.Data.MassDry","float"],["Generator.Data.Scale","float"],["Generator.Data.Stretch","float"],["Generator.Data.SoundVolume","float"],["Generator.UsesMachNumber","bool"],["GenericPart.Data.AttachmentSize","float"],["GenericPart.Data.MassDry","float"],["GenericPart.Data.Scale","float"],["Gyroscope.Data.ElectricalConsumption","float"],["Gyroscope.Data.MassDry","float"],["Gyroscope.Data.MaxAcceleration","float"],["Gyroscope.Data.Power","float"],["Gyroscope.Data.SpoolUpRatio","float"],["Gyroscope.Data.Utilization","float"],["Gyroscope.PowerConsumption","float"],["Gyroscope.UsesMachNumber","bool"],["InputBasedActivator.Data.CurrentState","bool"],["InputBasedActivator.Data.RangeEnd","float"],["InputBasedActivator.Data.RangeStart","float"],["JointRotator.Data.MassDry","float"],["JointRotator.Data.AllowFreeSpin","bool"],["JointRotator.Data.Angle","float"],["JointRotator.Data.Scale","float"],["JointRotator.Data.DamperMultiplier","float"],["JointRotator.Data.MaxSpeed","float"],["JointRotator.Data.Range","float"],["JointRotator.Data.SoundVolume","float"],["JointRotator.Data.Speed","float"],["JointRotator.Data.ConsumptionMultiplier","float"],["JointRotator.UsesMachNumber","bool"],["KomodoNoseCone.Data.DefaultRadius","float"],["KomodoNoseCone.Data.MassDry","float"],["KomodoNoseCone.Data.Scale","float"],["Label.Data.CurvatureAngle","float"],["Label.Data.FontSize","float"],["Label.Data.Height","float"],["Label.Data.OutlineWidth","float"],["Label.Data.SupportsGradient","bool"],["Label.Data.Width","float"],["Package.Data.MassDry","float"],["Parachute.Data.ASLDeployment","float"],["Parachute.Data.ASLInflation","float"],["Parachute.Data.ASLCut","float"],["Parachute.Data.ChuteHeight","float"],["Parachute.Data.ChuteRadius","float"],["Parachute.Data.ChuteRadiusDeflated","float"],["Parachute.Data.CordLength","float"],["Parachute.Data.CutDensity","float"],["Parachute.Data.DeploymentDensity","float"],["Parachute.Data.Drag","float"],["Parachute.Data.InflationDensity","float"],["Parachute.Data.MassDry","float"],["Parachute.Data.MaxDeploymentSpeed","float"],["Parachute.Data.ReferenceDensity","float"],["Parachute.Data.Scale","float"],["Parachute.Data.SnapThresholdMultiplier","float"],["Parachute.UpdateDensity","bool"],["Parachute.UsesMachNumber","bool"],["Parachute.DesignerPerformanceScale","float"],["Piston.Data.CurrentPosition","float"],["Piston.Data.Cycle","bool"],["Piston.Data.Extend","bool"],["Piston.Data.MassDry","float"],["Piston.Data.MaxRange","float"],["Piston.Data.MaxSpeed","float"],["Piston.Data.PreventBreaking","bool"],["Piston.Data.Range","float"],["Piston.Data.Scale","float"],["Piston.Data.Speed","float"],["Piston.Data.ConsumptionMultiplier","float"],["Piston.UsesMachNumber","bool"],["PropellerAssembly.Data.BladeBlurSpread","float"],["PropellerAssembly.Data.ChordScale","float"],["PropellerAssembly.Data.Diameter","float"],["PropellerAssembly.Data.DragScalar","float"],["PropellerAssembly.Data.HubMass","float"],["PropellerAssembly.Data.HubScale","float"],["PropellerAssembly.Data.IsManual","bool"],["PropellerAssembly.Data.IsWaterProp","bool"],["PropellerAssembly.Data.MassDry","float"],["PropellerAssembly.Data.MaxPitch","float"],["PropellerAssembly.Data.PropellerPitchScale","float"],["PropellerAssembly.Data.PropertiesOpen","bool"],["PropellerAssembly.Data.Radius","float"],["PropellerAssembly.Data.ReverseBladeDirection","bool"],["PropellerAssembly.Data.Scale","float"],["PropellerAssembly.Data.SpinTolerance","float"],["PropellerAssembly.Data.SyncWithMotor","bool"],["PropellerAssembly.Data.ThrustScalar","float"],["PropellerAssembly.AnalysisMaxRpm","float"],["PropellerAssembly.ChordScale","float"],["PropellerAssembly.Diameter","float"],["PropellerAssembly.DynamicThrustScalar","float"],["PropellerAssembly.EngineDestroyed","bool"],["PropellerAssembly.IsActivelyPowered","bool"],["PropellerAssembly.PerformanceAnalysisDisplayed","bool"],["PropellerAssembly.PropellerPhysicsEnabled","bool"],["PropellerAssembly.PropellerPitchDegrees","float"],["PropellerAssembly.Rpm","float"],["PropellerAssembly.RpmAbs","float"],["PropellerAssembly.RpmPhysical","float"],["PropellerAssembly.RpmPhysicalAbs","float"],["PropellerAssembly.RpmReductionAvailable","bool"],["PropellerAssembly.Thrust","float"],["PropellerAssembly.UsesMachNumber","bool"],["PropellerAssembly.WindmillActive","bool"],["PropellerAssembly.RpmReductionScalar","float"],["PropellerAssembly.AnalysisRpm","float"],["ReactionControlNozzle.Data.FuelConsumptionRate","float"],["ReactionControlNozzle.Data.ManualInput","bool"],["ReactionControlNozzle.Data.MultiDirection","bool"],["ReactionControlNozzle.Data.MassDry","float"],["ReactionControlNozzle.Data.Power","float"],["ReactionControlNozzle.Data.Scale","float"],["ReactionControlNozzle.CurrentThrust","float"],["ReactionControlNozzle.IsActive","bool"],["ReactionControlNozzle.RcnThrottle","float"],["ReactionControlNozzle.UsesMachNumber","bool"],["ResizableWheel.Data.BaseGearRatio","float"],["ResizableWheel.Data.BrakeTorque","float"],["ResizableWheel.Data.Damper","float"],["ResizableWheel.Data.Direction","bool"],["ResizableWheel.Data.EnableSuspension","bool"],["ResizableWheel.Data.FrictionConcrete","float"],["ResizableWheel.Data.FrictionOffroad","float"],["ResizableWheel.Data.FrictionScale","float"],["ResizableWheel.Data.GearRatio","float"],["ResizableWheel.Data.MassDry","float"],["ResizableWheel.Data.MaxAngularVelocity","float"],["ResizableWheel.Data.MaxRpm","float"],["ResizableWheel.Data.MotorTorque","float"],["ResizableWheel.Data.PropertiesOpen","bool"],["ResizableWheel.Data.Radius","float"],["ResizableWheel.Data.RimScale","float"],["ResizableWheel.Data.Scale","float"],["ResizableWheel.Data.SlipForwardAsymptote","float"],["ResizableWheel.Data.SlipForwardExtremum","float"],["ResizableWheel.Data.SlipSidewaysAsymptote","float"],["ResizableWheel.Data.SlipSidewaysExtremum","float"],["ResizableWheel.Data.SoundVolume","float"],["ResizableWheel.Data.Spring","float"],["ResizableWheel.Data.SuspensionDistance","float"],["ResizableWheel.Data.SuspensionStiffness","float"],["ResizableWheel.Data.ThicknessScale","float"],["ResizableWheel.Data.Torque","float"],["ResizableWheel.Data.TorqueScaled","float"],["ResizableWheel.Data.TractionForward","float"],["ResizableWheel.Data.TractionSideways","float"],["ResizableWheel.Data.TurningAngle","float"],["ResizableWheel.Data.TurningRate","float"],["ResizableWheel.Data.WheelMass","float"],["ResizableWheel.CurrentRpm","float"],["ResizableWheel.Enabled","bool"],["ResizableWheel.Grounded","bool"],["ResizableWheel.MaxRpm","float"],["ResizableWheel.PowerConsumption","float"],["ResizableWheel.SpringReductionCoefficient","float"],["ResizableWheel.UsesMachNumber","bool"],["ResizableWheel.WheelDisconnected","bool"],["ResizableWheel.MaxPowerConsumption","float"],["ResizableWheel.TurningRate","float"],["ScalablePod.Data.EngineEnabled","bool"],["ScalablePod.Data.MassDry","float"],["ScalablePod.Data.Height","float"],["ScalablePod.Data.ScaledSize","float"],["ScalablePod.Data.Scale","float"],["ScalablePod.Data.TotalVolume","float"],["ScalablePod.PartVolume","float"],["SubPartRotator.Data.CurrentEnabledPercent","float"],["SubPartRotator.Data.DesignerIconEnabledPercent","float"],["SubPartRotator.Data.RotationRate","float"],["SubPartRotator.Data.SelfGoverned","bool"],["SubPartRotator.Data.StartEnabled","bool"],["SubPartRotator.Data.SyncActivationGroup","bool"],["SubPartRotator.AngleMultiplier","float"],["Suspension.Data.Damper","float"],["Suspension.Data.MassDry","float"],["Suspension.Data.PreventBreaking","bool"],["Suspension.Data.Scale","float"],["Suspension.Data.Spring","float"],["Suspension.Data.Thickness","float"],["TestPilot.Data.AnchorFeet","bool"],["TestPilot.Acceleration","float"],["TestPilot.InstantaneousEarthGs","float"],["TestPilot.SmoothEarthGs","float"],["TestPilot.SmoothEarthGsMax","float"],["Wing.Data.AllowControlSurfaces","bool"],["Wing.Data.AngleOfAttack","float"],["Wing.Data.AutoResize","bool"],["Wing.Data.BaseChord","float"],["Wing.Data.ControlSurfacePriceMultiplier","float"],["Wing.Data.CurveLength","float"],["Wing.Data.Density","float"],["Wing.Data.FuelPercentage","float"],["Wing.Data.HingeDistanceFromTrailingEdge","float"],["Wing.Data.InvertAirfoil","bool"],["Wing.Data.IsInverted","bool"],["Wing.Data.IsFancy","bool"],["Wing.Data.IsStylish","bool"],["Wing.Data.MassDry","float"],["Wing.Data.MaxFuelCapacity","float"],["Wing.Data.MinSectionLength","float"],["Wing.Data.RootLeadingOffset","float"],["Wing.Data.RootTrailingOffset","float"],["Wing.Data.Thickness","float"],["Wing.Data.ThicknessDelta","float"],["Wing.Data.ThicknessOffset","float"],["Wing.Data.ThicknessTip","float"],["Wing.Data.LeadingBulge","float"],["Wing.Data.TipChord","float"],["Wing.Data.TipLeadingOffset","float"],["Wing.Data.TipTrailingOffset","float"],["Wing.Data.WingArea","float"],["Wing.Data.WingPhysicsEnabled","bool"],["Wing.Data.WingSpan","float"],["Wing.Data.WingStrength","float"],["ControlSurface.Data.DeflectionSpeed","float"],["ControlSurface.Data.Invert","bool"],["ControlSurface.Data.InvertOnMirror","bool"],["ControlSurface.Data.MaxDeflectionDegree","float"],["ControlSurface.Data.SingleAxisWhenAuto","bool"],["ControlSurface.DeflectionAngle","float"],["Wing.DrawCenterOfLiftBalls","bool"],["Wing.DrawCenterOfLiftBallsProportionalToMagnitude","bool"],["Wing.ShowLiftVectorGlobal","bool"],["Wing.AngleOfAttack","float"],["Wing.DebugEnabled","bool"],["Wing.DihedralAngle","float"],["Wing.InvertAirfoil","bool"],["Wing.IsWingTipAttached","bool"],["Wing.MaxFuelCapacity","float"],["Wing.OnRightSide","bool"],["Wing.ShowLiftVector","bool"],["Wing.UsesMachNumber","bool"],["Wing.WingSweep","float"],["SolarPanelArray.Data.DeploySpeed","float"],["SolarPanelArray.Data.Efficiency","float"],["SolarPanelArray.Data.Folds","float"],["SolarPanelArray.Data.HideBase","bool"],["SolarPanelArray.Data.Invert","bool"],["SolarPanelArray.Data.InvertOnMirror","bool"],["SolarPanelArray.Data.Juicy","bool"],["SolarPanelArray.Data.Length","float"],["SolarPanelArray.Data.MainOpenPercentage","float"],["SolarPanelArray.Data.MassDry","float"],["SolarPanelArray.Data.Open","bool"],["SolarPanelArray.Data.RotateSpeed","float"],["SolarPanelArray.Data.Scale","float"],["SolarPanelArray.Data.SideOpenPercentage","float"],["SolarPanelArray.Data.StartOpen","bool"],["SolarPanelArray.UsesMachNumber","bool"],["SolarPanelArray.ExtensionPistonTravelSpeed","float"],["SolarPanelArray.HingeHolderTravelSpeed","float"],["SolarPanel.Data.Efficiency","float"],["SolarPanel.Data.Length","float"],["SolarPanel.Data.MassDry","float"],["SolarPanel.Data.Width","float"],["SolarPanel.UsesMachNumber","bool"],["Engine.Data.ElectricalConsumption","float"],["Engine.Data.FuelConsumption","float"],["Engine.Data.GimbalRange","float"],["Engine.Data.MaxGimbalAngle","float"],["Engine.Data.MaxTorque","float"],["Engine.Data.SeaLevelEfficiency","float"],["Engine.Data.SupportsWarpBurn","bool"],["Engine.Data.Thrust","float"],["Engine.Data.Scale","float"],["Engine.Data.VacuumEfficiency","float"],["Engine.Data.MassDry","float"],["Engine.CurrentEfficiency","float"],["Engine.CurrentMassFlowRate","float"],["Engine.CurrentThrust","float"],["Engine.IsActive","bool"],["Engine.MaximumMassFlowRate","float"],["Engine.MaximumThrust","float"],["Engine.PreviewExhaust","bool"],["Engine.RemainingFuel","float"],["Engine.SupportsWarpBurn","bool"],["Engine.ThrottleResponse","float"],["Engine.UsesMachNumber","bool"],["JetEngine.Data.AfterburnerThrottleStart","float"],["JetEngine.Data.BypassRatio","float"],["JetEngine.Data.CompressionRatio","float"],["JetEngine.Data.CompressorLength","float"],["JetEngine.Data.CoreRadius","float"],["JetEngine.Data.FanArea","float"],["JetEngine.Data.FanRadius","float"],["JetEngine.Data.HasAfterburner","bool"],["JetEngine.Data.HasReverseThrust","bool"],["JetEngine.Data.MassDry","float"],["JetEngine.Data.OverrideAfterBurnerTemp","float"],["JetEngine.Data.OverrideBurnerTemp","float"],["JetEngine.Data.OverrideFanPressureRatio","float"],["JetEngine.Data.ShroudCurvature","float"],["JetEngine.Data.ShroudLength","float"],["JetEngine.Data.Scale","float"],["JetEngine.Data.ThrottleResponse","float"],["JetEngine.CurrentMassFlowRate","float"],["JetEngine.CurrentThrust","float"],["JetEngine.IsActive","bool"],["JetEngine.MaximumMassFlowRate","float"],["JetEngine.MaximumThrust","float"],["JetEngine.PreviewExhaust","bool"],["JetEngine.RemainingFuel","float"],["JetEngine.SupportsWarpBurn","bool"],["JetEngine.ThrottleResponse","float"],["JetEngine.UsesMachNumber","bool"],["RocketEngine.Data.IsPimped","bool"],["RocketEngine.Data.ExhaustGlobalIntensity","float"],["RocketEngine.Data.ExhaustOffset","float"],["RocketEngine.Data.ExhaustRimShade","float"],["RocketEngine.Data.ExhaustShockIntensity","float"],["RocketEngine.Data.ExhaustShockDirectionOffset","float"],["RocketEngine.Data.ExhaustSootIntensity","float"],["RocketEngine.Data.ExhaustSootLength","float"],["RocketEngine.Data.SmokeOffset","float"],["RocketEngine.Data.SmokeSpeed","float"],["RocketEngine.Data.AltitudeCompensation","float"],["RocketEngine.Data.ChamberPressure","float"],["RocketEngine.Data.UserChamberPressure","float"],["RocketEngine.Data.ExhaustScale","float"],["RocketEngine.Data.ThrustOverride","float"],["RocketEngine.Data.MassFlowRateOverride","float"],["RocketEngine.Data.WattsPerFuelFlowOverride","float"],["RocketEngine.Data.Ignited","bool"],["RocketEngine.Data.MinThrottleOverride","float"],["RocketEngine.Data.ThrottleResponse","float"],["RocketEngine.Data.HeatTransferOverride","float"],["RocketEngine.Data.DirectDamage","float"],["RocketEngine.Data.OverexpansionDamage","float"],["RocketEngine.Data.HasSmoke","bool"],["RocketEngine.Data.ExhaustTextureStrength","float"],["RocketEngine.Data.NozzleDiscStrength","float"],["RocketEngine.Data.ExtensionSize","float"],["RocketEngine.Data.GimbalRange","float"],["RocketEngine.Data.MassDry","float"],["RocketEngine.Data.NozzleAreaExit","float"],["RocketEngine.Data.NozzleAreaThroat","float"],["RocketEngine.Data.NozzleExitRadius","float"],["RocketEngine.Data.NozzleThroatRadius","float"],["RocketEngine.Data.UserNozzleThroatRadius","float"],["RocketEngine.Data.Scale","float"],["RocketEngine.Data.Size","float"],["RocketEngine.Data.SupportsWarpBurn","bool"],["RocketEngine.Data.TopRadius","float"],["RocketEngine.CurrentMassFlowRate","float"],["RocketEngine.CurrentThrust","float"],["RocketEngine.IsActive","bool"],["RocketEngine.MaximumMassFlowRate","float"],["RocketEngine.MaximumThrust","float"],["RocketEngine.PreviewExhaust","bool"],["RocketEngine.RemainingFuel","float"],["RocketEngine.SupportsWarpBurn","bool"],["RocketEngine.ThrottleResponse","float"],["RocketEngine.UsesMachNumber","bool"],["RocketEngine.PerformanceAnalysisAirPressure","double"],["Mfd.Data.Height","float"],["Mfd.Data.Resolution","float"],["Mfd.Data.Width","float"],["Mfd.Data.PowerUsage","float"],["Mfd.Data.MassDry","float"],["Mfd.UsesMachNumber","bool"],["BeaconLight.Data.BlinkFrequency","float"],["BeaconLight.Data.BlinkOffset","float"],["BeaconLight.Data.HideBase","bool"],["BeaconLight.Data.Intensity","float"],["BeaconLight.Data.MassDry","float"],["BeaconLight.Data.PowerConsumptionScale","float"],["BeaconLight.Data.Scale","float"],["BeaconLight.HasPower","bool"],["BeaconLight.PowerConsumption","float"],["BeaconLight.UsesMachNumber","bool"],["Light.Data.CastShadows","bool"],["Light.Data.Intensity","float"],["Light.Data.PartGlow","bool"],["Light.Data.PartGlowSelfShadowCasting","bool"],["Light.Data.Range","float"],["Light.Data.SpotLightAngle","float"],["LightPart.Data.CastShadows","bool"],["LightPart.Data.Extension","float"],["LightPart.Data.HideBase","bool"],["LightPart.Data.Intensity","float"],["LightPart.Data.MassDry","float"],["LightPart.Data.PowerConsumption","float"],["LightPart.Data.Range","float"],["LightPart.Data.Rotation","float"],["LightPart.Data.Scale","float"],["LightPart.Data.SpotLightAngle","float"],["LightPart.Data.Brightness","float"],["LightPart.PowerConsumption","float"],["LightPart.UsesMachNumber","bool"],["Light.Active","bool"],["Light.HasPower","bool"],["LandingLeg.Data.BaseScale","float"],["LandingLeg.Data.DeployedAngle","float"],["LandingLeg.Data.DeployedExtensionY","float"],["LandingLeg.Data.DeploySpeed","float"],["LandingLeg.Data.ExtensionPercentage","float"],["LandingLeg.Data.FootPivot","float"],["LandingLeg.Data.MassDry","float"],["LandingLeg.Data.PropertiesOpen","bool"],["LandingLeg.Data.Scale","float"],["LandingLeg.Data.SoundVolume","float"],["LandingLeg.Data.StartDeployed","bool"],["LandingLegSuspension.Data.Damper","float"],["LandingLegSuspension.Data.MaxSuspensionDistance","float"],["LandingLegSuspension.Data.MinSuspensionDistance","float"],["LandingLegSuspension.Data.Spring","float"],["LandingLegSuspension.Data.SuspensionCompression","float"],["LandingLegSuspension.Data.SuspensionDistance","float"],["LandingLegSuspension.Data.TargetCompression","float"],["LandingLegSuspension.CollideWithCraftLayer","bool"],["LandingLegSuspension.CurrentDistance","float"],["LandingLegSuspension.ExtensionPercentage","float"],["LandingLegSuspension.Scale","float"],["LandingGear.Data.BayLength","float"],["LandingGear.Data.BayWidth","float"],["LandingGear.Data.BrakeTorque","float"],["LandingGear.Data.BrakeTorqueUnscaled","float"],["LandingGear.Data.DamperScale","float"],["LandingGear.Data.ExtensionPercent","float"],["LandingGear.Data.Flipped","bool"],["LandingGear.Data.ForwardOffset","float"],["LandingGear.Data.GearRatio","float"],["LandingGear.Data.HasBay","bool"],["LandingGear.Data.HasDoor","bool"],["LandingGear.Data.HeightOffset","float"],["LandingGear.Data.LengthScale","float"],["LandingGear.Data.MassDry","float"],["LandingGear.Data.MaxTurningAngle","float"],["LandingGear.Data.RestrictLegToBayBoundaries","bool"],["LandingGear.Data.RetractionSpeed","float"],["LandingGear.Data.Scale","float"],["LandingGear.Data.ShowUpperBraces","bool"],["LandingGear.Data.SideOffset","float"],["LandingGear.Data.SlantAngle","float"],["LandingGear.Data.SoundVolume","float"],["LandingGear.Data.SpringForceScale","float"],["LandingGear.Data.StartExtended","bool"],["LandingGear.Data.SupportArmEnabled","bool"],["LandingGear.Data.SuspensionTravel","float"],["LandingGear.Data.Torque","float"],["LandingGear.Data.TorqueUnscaled","float"],["LandingGear.Data.TractionForward","float"],["LandingGear.Data.TractionSideways","float"],["LandingGear.Data.VerticalAngleOffset","float"],["LandingGear.UsesMachNumber","bool"],["LandingGear.MaxPowerConsumption","float"],["CurveInput.Data.Amplitude","float"],["CurveInput.Data.Frequency","float"],["CurveInput.Data.IgnorePartActivationState","bool"],["CurveInput.Data.Offset","float"],["CurveInput.Data.UpdateInWarp","bool"],["CurveInput.Data.UseUnscaledTime","bool"],["CurveInput.Enabled","bool"],["CurveInput.Value","float"],["InputController.Data.CurrentValue","float"],["InputController.Data.IgnorePartActivationState","bool"],["InputController.Data.Invert","bool"],["InputController.Data.InvertOnMirror","bool"],["InputController.Data.MaxValue","float"],["InputController.Data.MinValue","float"],["InputController.Data.OutputCurveAmplitude","float"],["InputController.Data.OutputCurveFrequency","float"],["InputController.Data.OutputCurveOffset","float"],["InputController.Data.ZeroOnDeactivate","bool"],["InputController.Active","bool"],["InputController.Enabled","bool"],["InputController.InvertOnMirror","bool"],["InputController.Value","float"],["InputController.Value","float"],["InputController.Visible","bool"],["Fuselage.Data.AutoResize","bool"],["Fuselage.Data.Buoyancy","float"],["Fuselage.Data.DeadWeight","float"],["Fuselage.Data.DeadWeightPercentage","float"],["Fuselage.Data.DepthCurved","bool"],["Fuselage.Data.FuelPercentage","float"],["Fuselage.Data.InnerVolume","float"],["Fuselage.Data.MassDry","float"],["Fuselage.Data.MeshMassMultiplier","float"],["Fuselage.Data.MeshPriceMultiplier","float"],["Fuselage.Data.NormalSmoothingAngle","float"],["Fuselage.Data.SupportsAddSection","bool"],["Fuselage.Data.SupportsXZOffset","bool"],["Fuselage.Data.ToolAutoAdaptBottom","bool"],["Fuselage.Data.ToolAutoAdaptTop","bool"],["Fuselage.Data.ToolIgnore","bool"],["Fuselage.Data.ToolResizeBottom","bool"],["Fuselage.Data.ToolResizeHeight","bool"],["Fuselage.Data.ToolResizeRadius","bool"],["Fuselage.Data.ToolResizeTop","bool"],["Fuselage.Data.ToolShapeBottom","bool"],["Fuselage.Data.ToolShapeTop","bool"],["Fuselage.Data.Volume","float"],["Fuselage.Backwards","bool"],["Fuselage.UpdateAttachPointRotatePosition","bool"],["CrewCompartment.Data.CommandPodEnabledInCompartment","bool"],["CrewCompartment.Data.MaxPressure","float"],["CrewCompartment.Data.MinPressure","float"],["CrewCompartment.Data.Radius","float"],["CrewCompartment.Data.VisibleInCompartment","bool"],["CrewCompartment.Data.VolumePerIndividual","float"],["CrewCompartment.IsFull","bool"],["CrewCompartment.RefreshPartPropertiesUI","bool"],["CrewCompartment.UsesMachNumber","bool"],["Eva.Data.GDamageScale","float"],["Eva.Data.GrapplingHookEnabled","bool"],["Eva.Data.GTolerance","float"],["Eva.Data.IsTourist","bool"],["Eva.Data.JetpackAvailable","bool"],["Eva.Data.JetpackEnabled","bool"],["Eva.Data.JetpackPowerScalar","float"],["Eva.Data.JumpPowerScalar","float"],["Eva.Data.RequiresCrewMember","bool"],["Eva.Data.UseAlternateJetpackStyle","bool"],["Eva.CameraFollowSpeed","float"],["Eva.ActiveWhileInCrewCompartment","bool"],["Eva.AirborneTime","float"],["Eva.AllowBodyRotation","bool"],["Eva.AutoUprightCharacter","bool"],["Eva.CanRefuseConnection","bool"],["Eva.CurrentThrust","float"],["Eva.EvaActive","bool"],["Eva.ForceForward","float"],["Eva.ForceStrafe","float"],["Eva.GrapplingHookEnabled","bool"],["Eva.Gs","float"],["Eva.IgnoreForwardInputs","bool"],["Eva.InAtmosphere","bool"],["Eva.IsAtWaterSurface","bool"],["Eva.IsCrewCompartmentAttachPointInUse","bool"],["Eva.IsFpsActive","bool"],["Eva.IsGrounded","bool"],["Eva.IsGroundedOnRigidBody","bool"],["Eva.IsGroundedTerrain","bool"],["Eva.IsInWater","bool"],["Eva.IsPlayerCraft","bool"],["Eva.IsSwimmingEnabled","bool"],["Eva.IsWalking","bool"],["Eva.JetpackEnabled","bool"],["Eva.JetpackPowerScalar","float"],["Eva.JumpPowerScalar","float"],["Eva.TetherAdjustLengthEnabled","bool"],["Eva.UnloadingFromCrewCompartmentInProgress","bool"],["Eva.MaxForwardSpeed","float"],["Eva.MaxStrafeSpeed","float"],["Eva.RecentlyJumped","bool"],["Eva.ShouldInterpolate","bool"],["Eva.TurningResponsiveness","float"],["Eva.UseKinematicTurning","bool"],["Eva.CurrentMassFlowRate","float"],["Eva.CurrentThrust","float"],["Eva.IsActive","bool"],["Eva.MaximumMassFlowRate","float"],["Eva.MaximumThrust","float"],["Eva.RemainingFuel","float"],["Eva.SupportsWarpBurn","bool"],["Eva.ThrottleResponse","float"]],"mods":["BeaconLight","CameraVantage","CargoBay","Cockpit","CommandPod","Config","ControlSurface","CoverEngine","CrewCompartment","CrossFeed","CurveInput","Decal","Detacher","DockingPort","ElectricMotor","ElectricMotorOld","Engine","Eva","EvaChair","Fairing","FlightProgram","FuelSource","FuelTank","Fuselage","Gauge","GaugeBase","Generator","GenericPart","Gyroscope","Inlet","InputBasedActivator","InputController","JetEngine","JointRotator","KomodoNoseCone","Label","LandingGear","LandingLeg","LandingLegSuspension","Light","LightPart","Mfd","Package","Parachute","Part","Payload","Piston","PropellerAssembly","ReactionControlNozzle","RelayFuelSource","ResizableWheel","RocketEngine","ScalablePod","SolarPanel","SolarPanelArray","SubPartRotator","Suspension","TestPilot","Wing"]}</script>
+<script>
+(function(){
+var home=location.protocol==="file:"?"../index.html":(/\.github\.io$/i.test(location.hostname)?location.origin+"/"+location.pathname.split("/")[1]+"/":"https://anda2012.github.io/Juno_New_Origins_Tools/");
+document.querySelectorAll(".homelink").forEach(function(a){a.href=home;});
+})();
+const D=JSON.parse(document.getElementById("data").textContent),$=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const num=x=>String(Math.round(x*1e6)/1e6);
+
+/* ---------- presets ---------- */
+const PRESETS=[
+["Elevator (pitch)","Pitch"],["Aileron (roll)","Roll"],["Rudder (yaw)","Yaw"],
+["Elevon (pitch + roll)","clamp(Pitch + Roll, -1, 1)"],["V-tail ruddervator (pitch + yaw)","clamp(Pitch + Yaw, -1, 1)"],
+["Less authority at speed","Pitch * (1 - clamp01(FD.SurfaceVelocityMagnitude * 0.002) * 0.7)"],
+["Pitch with trim","clamp(Pitch + OffsetPitch, -1, 1)"],
+["Speed-scaled mix (example)","clamp(0.24 * clamp01(FD.SurfaceVelocityMagnitude * 0.003) + Pitch + (Roll * .InputController.Data.Invert), -1, 1)"],
+["Airbrake","Brake"],["Flaps on slider 1","Slider1"],["Throttle linked","Throttle"],
+["Activation group 1 on/off","AG1"],["Hinge open (AG1) / close (AG2)","AG1 - AG2"],["Switch between two values with AG3","(AG3 ? 1 : -1)"]];
+PRESETS.forEach((p,i)=>$("preset").insertAdjacentHTML("beforeend",'<option value="'+i+'">'+esc(p[0])+'</option>'));
+$("preset").onchange=()=>{const p=PRESETS[+$("preset").value];if(p){$("ex").value=p[1];change();}$("preset").value="";};
+$("clr").onclick=()=>{$("ex").value="";change();};
+
+/* ---------- picker ---------- */
+const CATS=["Controls","Activation groups","Flight data","Orbit data","Part property","Number / Vizzy"];
+let cat="Controls",sel=null;
+const isVec=t=>t==="vector";
+function items(){
+  const q=$("pick").value.trim().toLowerCase();
+  let L;
+  if(cat==="Controls")L=D.controls.map(n=>({n,e:n}));
+  else if(cat==="Activation groups")L=Array.from({length:10},(_,i)=>({n:"AG"+(i+1),e:"AG"+(i+1)}));
+  else if(cat==="Flight data")L=D.fd.map(r=>({n:r[0],e:"FD."+r[0],vec:isVec(r[1]),t:r[1]}));
+  else if(cat==="Orbit data")L=D.od.map(r=>({n:r[0],e:"OD."+r[0],vec:isVec(r[1]),t:r[1]}));
+  else L=D.scripts.map(r=>({n:r[0],e:r[0],t:r[1],part:true}));
+  return L.filter(x=>!q||x.n.toLowerCase().includes(q)).slice(0,80);
+}
+function renderPicks(){
+  $("cats").innerHTML=CATS.map(c=>'<button class="chip'+(c===cat?" on":"")+'" data-cat="'+c+'">'+c+'</button>').join("");
+  const isNum=cat==="Number / Vizzy";
+  $("pick").hidden=$("picks").hidden=isNum;$("constrow").hidden=!isNum;$("opts").hidden=isNum||!sel;
+  if(isNum)return;
+  const L=items();
+  $("picks").innerHTML=L.map((x,i)=>'<button class="chip'+(sel&&sel.e===x.e?" on":"")+'" data-i="'+i+'">'+esc(x.n)+(x.t?' <small>'+x.t+'</small>':'')+'</button>').join("")||'<span class="hint">No matches.</span>';
+  $("picks")._items=L;
+}
+$("pick").oninput=renderPicks;
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.cat){cat=b.dataset.cat;sel=null;$("pick").value="";renderPicks();}
+  else if(b.dataset.i!==undefined){sel=$("picks")._items[+b.dataset.i];
+    $("opts").hidden=false;$("sel").textContent=sel.e;$("vecw").hidden=!sel.vec;$("partrow").hidden=!sel.part;
+    renderPicks();}
+  else if(b.dataset.fn){insertText(b.dataset.fn);}
+  else if(b.dataset.wrap){const v=$("ex").value.trim();if(v){$("ex").value=b.dataset.wrap.replace("@",v);change();}}
+});
+function termText(){
+  let ref=sel.e;
+  if(sel.part){
+    const mod=$("mid").value.trim(),parts=ref.split("."),
+      tail=parts.slice(1).join("."),head=mod||parts[0];
+    ref=head+"."+tail;
+    const ps=$("psel").value,pv=$("pval").value.trim();
+    if(ps==="name")ref=(/\s/.test(pv)?"["+pv+"."+ref+"]":pv+"."+ref);
+    else if(ps==="id")ref="$"+pv+"."+ref;
+    else if(ps==="all")ref="*."+ref;
+    else ref="."+ref;
+  }
+  if(sel.vec)ref=$("vec").value+"("+ref+")";
+  switch($("shape").value){case"abs":ref="abs("+ref+")";break;case"clamp01":ref="clamp01("+ref+")";break;case"sign":ref="sign("+ref+")";break;case"sq":ref=ref+" * abs("+ref+")";break;case"inv":ref="(1 - "+ref+")";break;}
+  const g=parseFloat($("gain").value);
+  if(!isNaN(g)&&g!==1)ref=num(g)+" * "+ref;
+  return ref;
+}
+$("psel").onchange=()=>{const v=$("psel").value;$("pvalw").hidden=!(v==="name"||v==="id");$("pvall").textContent=v==="id"?"Part id number":"Part name (no leading number)";};
+$("addterm").onclick=()=>{if(!sel)return;addTerm(termText(),$("sign").value);};
+$("insert").onclick=()=>{if(sel)insertText(termText());};
+$("addvz").onclick=()=>{const n=$("vzname").value.trim();if(n)addTerm(($("vzvec").checked?"v:":"")+"VZ."+n,"+");};
+$("addc").onclick=()=>{const v=$("cval").value;if(v!=="")addTerm(v,"+");};
+function addTerm(t,sign){
+  const cur=$("ex").value.trim();
+  $("ex").value=cur?cur+" "+sign+" "+t:(sign==="-"?"-":"")+t;change();
+}
+function insertText(t){
+  const el=$("ex"),s=el.selectionStart??el.value.length,e=el.selectionEnd??s;
+  el.value=el.value.slice(0,s)+t+el.value.slice(e);
+  const c=t.indexOf("(")>=0&&/\(.*\)$/.test(t)?s+t.indexOf("(")+1:s+t.length;
+  el.focus();el.setSelectionRange(c,c);change();
+}
+/* function chips */
+const FN={};D.funcs.concat(D.vfuncs).forEach(f=>FN[f[0]]=f);
+$("fns").innerHTML=D.funcs.map(f=>'<button class="chip" data-fn="'+f[0]+'('+f[1].split(",").map(()=>"").join(",")+')" title="'+esc(f[2])+'">'+f[0]+'</button>').join("");
+$("ops").innerHTML=["+","-","*","/","%","<",">","<=",">=","=","!=","&","|","!","( )","? :","pi","e","true","false"].map(o=>'<button class="chip" data-fn="'+({"( )":"()","? :":"(cond ? a : b)"}[o]||" "+o+" ")+'">'+o+'</button>').join("");
+$("fns").onmouseover=e=>{const b=e.target.closest("[data-fn]");if(b){const n=b.textContent;if(FN[n])$("fhint").textContent=n+"("+FN[n][1]+") — "+FN[n][2];}};
+$("fns").addEventListener("click",e=>{const b=e.target.closest("[data-fn]");if(b&&FN[b.textContent])$("fhint").textContent=b.textContent+"("+FN[b.textContent][1]+") — "+FN[b.textContent][2];});
+
+/* ---------- parser / evaluator ---------- */
+const SCAL={abs:Math.abs,ceil:Math.ceil,clamp:(x,a,b)=>Math.min(Math.max(x,a),b),clamp01:x=>Math.min(Math.max(x,0),1),exp:Math.exp,floor:Math.floor,
+ inverselerp:(a,b,x)=>a===b?0:Math.min(Math.max((x-a)/(b-a),0),1),lerp:(a,b,t)=>a+(b-a)*Math.min(Math.max(t,0),1),lerpunclamped:(a,b,t)=>a+(b-a)*t,
+ lerpangle:(a,b,t)=>{let d=((b-a)%360+540)%360-180;return a+d*Math.min(Math.max(t,0),1)},deltaangle:(a,b)=>((b-a)%360+540)%360-180,
+ log:(x,p)=>Math.log(x)/Math.log(p),log10:Math.log10,pingpong:(x,l)=>{const t=((x%(2*l))+2*l)%(2*l);return l-Math.abs(t-l)},max:Math.max,min:Math.min,pow:Math.pow,
+ repeat:(x,l)=>x-Math.floor(x/l)*l,round:Math.round,sign:x=>x>0?1:x<0?-1:0,smoothstep:(a,b,t)=>{t=Math.min(Math.max((t-a)/(b-a),0),1);return t*t*(3-2*t)},
+ sqrt:Math.sqrt,sin:Math.sin,cos:Math.cos,tan:Math.tan,asin:Math.asin,acos:Math.acos,atan:Math.atan};
+const CONST={pi:Math.PI,e:Math.E,true:1,false:0};
+function tokenize(s){
+  const T=[];let i=0,m;
+  const num=/(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/y,id=/(?:v:)?(?:\[[^\]]*\]|(?:\*\.|\$|\.|[A-Za-z_])[\w$.]*(?:\[[^\]]*\])?)/y,op=/<=|>=|!=|[-+*\/%<>=&|!?:(),]/y;
+  while(i<s.length){
+    if(/\s/.test(s[i])){i++;continue;}
+    if(s[i]==='"'){const j=s.indexOf('"',i+1);if(j<0)throw new Error("Missing closing quote");T.push({t:"str",v:s.slice(i+1,j)});i=j+1;continue;}
+    num.lastIndex=i;if((m=num.exec(s))){T.push({t:"num",v:parseFloat(m[0])});i=num.lastIndex;continue;}
+    id.lastIndex=i;if((m=id.exec(s))){T.push({t:"id",v:m[0]});i=id.lastIndex;continue;}
+    op.lastIndex=i;if((m=op.exec(s))){T.push({t:"op",v:m[0]});i=op.lastIndex;continue;}
+    throw new Error("Unexpected character “"+s[i]+"”");
+  }
+  return T;
+}
+function parse(s){
+  const T=tokenize(s);let p=0;const vars=new Set(),fns=new Set();
+  const peek=()=>T[p],isOp=v=>T[p]&&T[p].t==="op"&&T[p].v===v;
+  const eat=v=>{if(!isOp(v))throw new Error("Expected “"+v+"”"+(T[p]?" but found “"+T[p].v+"”":" at the end"));p++;};
+  function tern(){let c=or();if(isOp("?")){p++;const a=tern();eat(":");const b=tern();return{k:"t",c,a,b};}return c;}
+  const bin=(next,ops)=>()=>{let l=next();while(T[p]&&T[p].t==="op"&&ops.includes(T[p].v)){const o=T[p++].v;l={k:"b",o,l,r:next()};}return l;};
+  function un(){if(isOp("-")){p++;return{k:"u",o:"-",x:un()};}if(isOp("!")){p++;return{k:"u",o:"!",x:un()};}if(isOp("+")){p++;return un();}return prim();}
+  const mul=bin(un,["*","/","%"]),add=bin(mul,["+","-"]),rel=bin(add,["<",">","<=",">="]),eq=bin(rel,["=","!="]),and=bin(eq,["&"]),or=bin(and,["|"]);
+  function prim(){
+    const t=T[p];if(!t)throw new Error("Expression ends too early");
+    if(t.t==="num"){p++;return{k:"n",v:t.v};}
+    if(t.t==="str"){p++;return{k:"s",v:t.v};}
+    if(isOp("(")){p++;const x=tern();eat(")");return x;}
+    if(t.t==="id"){p++;
+      if(isOp("(")){p++;const a=[];if(!isOp(")")){a.push(tern());while(isOp(",")){p++;a.push(tern());}}eat(")");
+        if(!FN[t.v]&&!SCAL[t.v])throw new Error("Unknown function “"+t.v+"”");fns.add(t.v);
+        if(FN[t.v]&&!SCAL[t.v]){} else{const need=FN[t.v]?FN[t.v][1].split(",").length:a.length;if(a.length!==need)throw new Error(t.v+" needs "+need+" value"+(need>1?"s":"")+", found "+a.length);}
+        return{k:"f",n:t.v,a};}
+      if(t.v in CONST)return{k:"n",v:CONST[t.v]};
+      vars.add(t.v);return{k:"v",n:t.v};}
+    throw new Error("Unexpected “"+t.v+"”");
+  }
+  if(!T.length)return{ast:null,vars,fns};
+  const ast=tern();if(p<T.length)throw new Error("Unexpected “"+T[p].v+"”");
+  return{ast,vars,fns};
+}
+function evalAst(a,env){
+  switch(a.k){
+    case"n":return a.v;case"s":return 0;case"v":return env[a.n]??0;
+    case"u":{const x=evalAst(a.x,env);return a.o==="-"?-x:(x?0:1);}
+    case"t":return evalAst(a.c,env)?evalAst(a.a,env):evalAst(a.b,env);
+    case"b":{const l=evalAst(a.l,env),r=evalAst(a.r,env);switch(a.o){case"+":return l+r;case"-":return l-r;case"*":return l*r;case"/":return l/r;case"%":return l%r;
+      case"<":return+(l<r);case">":return+(l>r);case"<=":return+(l<=r);case">=":return+(l>=r);case"=":return+(l===r);case"!=":return+(l!==r);case"&":return+!!(l&&r);case"|":return+!!(l||r);}}
+    case"f":{if(!SCAL[a.n])throw new Error("skip");return SCAL[a.n](...a.a.map(x=>evalAst(x,env)));}
+  }
+}
+
+/* ---------- live update ---------- */
+let env={};
+function change(){
+  const s=$("ex").value;let P;
+  try{P=parse(s);$("st").className="st ok";$("st").textContent=s.trim()?"✓ Valid expression":"Empty";}
+  catch(err){P=null;$("st").className="st bad";$("st").textContent="✗ "+err.message;}
+  renderVars(P);renderOut();
+}
+function renderVars(P){
+  const box=$("vars");
+  if(!P||!P.ast){box.innerHTML="";$("res").textContent="";return;}
+  const names=[...P.vars];
+  const keep=Array.from(box.querySelectorAll("[data-v]")).map(x=>x.dataset.v).join("|");
+  if(keep!==names.join("|")){
+    box.innerHTML=names.map(n=>{
+      const ctl=/^(Pitch|Roll|Yaw|Offset\w+|Slider\d|Translate\w+|Eva\w+)$/.test(n),zero=/^(Throttle|Brake|AG\d+)$/.test(n),
+        r=ctl?[-1,1]:zero?[0,1]:null;
+      if(!(n in env))env[n]=0;
+      return '<div class="var" data-v="'+esc(n)+'"><b>'+esc(n)+'</b>'+(r?'<input type="range" min="'+r[0]+'" max="'+r[1]+'" step="0.01" value="'+env[n]+'" data-r="'+esc(n)+'">':'<span class="hint">value</span>')+'<input type="number" step="any" value="'+env[n]+'" data-n="'+esc(n)+'"></div>';}).join("");
+  }
+  let out;
+  try{out=num(evalAst(P.ast,env));}catch(x){out=x.message==="skip"?"(vector functions can’t be tested here)":"Error";}
+  $("res").textContent=names.length||true?"Result: "+out:"";
+}
+$("vars").addEventListener("input",e=>{
+  const n=e.target.dataset.r||e.target.dataset.n;if(!n)return;
+  env[n]=parseFloat(e.target.value)||0;
+  const sib=$("vars").querySelectorAll('[data-v="'+n.replace(/"/g,'\\"')+'"] input');sib.forEach(x=>{if(x!==e.target)x.value=env[n];});
+  let P;try{P=parse($("ex").value);}catch(x){return;}
+  try{$("res").textContent="Result: "+num(evalAst(P.ast,env));}catch(x){$("res").textContent="Result: "+(x.message==="skip"?"(vector functions can’t be tested here)":"Error");}
+});
+$("ex").oninput=change;
+
+/* ---------- output ---------- */
+const FIELDS=[["type","o_type"],["min","o_min"],["max","o_max"],["inputAxisRange","o_range"],["invert","o_invert"],["invertOnMirror","o_mirror"],["invertType","o_itype"],["activationGroup","o_ag"],["ignorePartActivationState","o_ignore"],["zeroOnDeactivate","o_zero"]];
+const THINT={Rotator:"inputId=\"Rotator\" was taken from a real craft: it drives a JointRotator.",Activator:"inputId=\"Activator\" was taken from a real craft: it drives an InputBasedActivator.",custom:"Use the inputId the target modifier listens to.",cs:"ControlSurface has its own input property. This is untested; if it has no effect, use an InputController instead.",raw:""};
+function renderOut(){
+  const t=$("target").value,ex=$("ex").value.replace(/\s+/g," ").trim();
+  $("cidw").hidden=t!=="custom";$("icopts").hidden=!(t==="Rotator"||t==="Activator"||t==="custom");$("thint").textContent=THINT[t];
+  let name="InputController",a=[["input",ex]];
+  if(t==="cs"){name="ControlSurface";}
+  else if(t==="raw"){$("o_line").textContent='input="'+esc(ex)+'"';$("o_xml").textContent="";return;}
+  else{
+    a.push(["inputId",t==="custom"?$("cid").value:t]);
+    for(const [k,id] of FIELDS)if($(id).value!=="")a.push([k,$(id).value]);
+  }
+  const at=a.map(([k,v])=>k+'="'+esc(v)+'"').join(" ");
+  $("o_line").textContent=name+": "+at;$("o_xml").textContent="<"+name+" "+at+" />";
+}
+document.querySelectorAll("#target,#cid,#icopts select,#icopts input").forEach(x=>{x.oninput=renderOut;x.onchange=renderOut;});
+const copy=async(id,btn,txt)=>{try{await navigator.clipboard.writeText(txt());const o=btn.textContent;btn.textContent="Copied ✓";setTimeout(()=>btn.textContent=o,1500);}catch(e){}};
+$("c_line").onclick=e=>copy("o_line",e.target,()=>$("o_line").textContent);
+$("c_xml").onclick=e=>copy("o_xml",e.target,()=>$("o_xml").textContent);
+$("c_ex").onclick=e=>copy("ex",e.target,()=>$("ex").value.replace(/\s+/g," ").trim());
+
+renderPicks();change();
+</script>
+</body>
+</html>
