@@ -75,12 +75,12 @@ a.l{color:var(--ac)}
 <div class="card">
  <h2>3 · Colours</h2>
  <div class="row">
-  <div><label class="f">Number of colours <b id="v_n">3</b></label><input id="n" type="range" min="1" max="10" value="3"></div>
+  <div><label class="f">Number of colours <b id="v_n">8</b></label><input id="n" type="range" min="1" max="25" value="8"></div>
   <div><label class="f">Transparency cut-off <b id="v_d">100</b></label><input id="d" type="range" min="0" max="200" value="100"></div>
  </div>
  <div class="row">
-  <div><label class="f">Merge similar colours</label><select id="alg"><option value="0">Off (exact colours)</option><option value="1">On</option></select></div>
-  <div id="intw" hidden><label class="f">Merge strength <b id="v_i">30</b></label><input id="i" type="range" min="10" max="200" value="30"></div>
+  <div><label class="f">Merge similar colours</label><select id="alg"><option value="0">Off (exact colours)</option><option value="1" selected>On</option></select></div>
+  <div id="intw"><label class="f">Merge strength <b id="v_i">30</b></label><input id="i" type="range" min="10" max="200" value="30"></div>
   <div><label class="f">Transparent background</label><select id="tm"><option value="0">Off</option><option value="1">Auto (fill from top-left)</option><option value="2">A chosen colour</option></select></div>
  </div>
  <div id="tcw" hidden><p class="hint" style="margin:8px 0 2px">Make this colour transparent:</p><div class="cols" id="tcols"></div></div>
@@ -91,7 +91,7 @@ a.l{color:var(--ac)}
    <div><label class="f">Saturation <b id="v_s">0</b></label><input id="s" type="range" min="-100" max="100" value="0"></div>
   </div>
  </details>
- <p class="hint" style="margin:8px 0 0">Clear, high-contrast pictures with few colours convert best. For photos, turn on merging.</p>
+ <p class="hint" style="margin:8px 0 0">The Label has 25 colour slots. The first 10 colours use slots 16 to 25; colours 11 to 25 use slots 1 to 15, so check those slots can be edited in your game. Clear, high-contrast pictures with few colours convert best. For photos, turn on merging.</p>
 </div>
 
 <div class="card">
@@ -195,11 +195,11 @@ function toCode(idx,W,H,posOf){
 (function(){var home=location.protocol==="file:"?"../index.html":(/\.github\.io$/i.test(location.hostname)?location.origin+"/"+location.pathname.split("/")[1]+"/":"https://anda2012.github.io/Juno_New_Origins_Tools/");
 document.querySelectorAll(".homelink").forEach(function(a){a.href=home;});})();
 const $=id=>document.getElementById(id);
-let img=null,Q=null,W=0,H=0,order=Array(25).fill(null),over={},sel=15,lock="w";
-for(let i=0;i<10;i++)order[15+i]=i;
+const defOrder=()=>{const o=Array(25).fill(null);for(let i=0;i<25;i++)o[i<10?15+i:i-10]=i;return o;};
+let img=null,Q=null,W=0,H=0,order=defOrder(),over={},sel=15,lock="w";
 try{const c=localStorage.getItem("jlabel-cell");if(c)$("cell").value=c;}catch(e){}
 
-function load(src){const im=new Image();im.onload=()=>{img=im;$("app").hidden=false;$("iinfo").textContent="Loaded "+(im.naturalWidth||"?")+" × "+(im.naturalHeight||"?")+" px";order=Array(25).fill(null);for(let i=0;i<10;i++)order[15+i]=i;over={};sel=15;run();};
+function load(src){const im=new Image();im.onload=()=>{img=im;$("app").hidden=false;$("iinfo").textContent="Loaded "+(im.naturalWidth||"?")+" × "+(im.naturalHeight||"?")+" px";order=defOrder();over={};sel=15;run();};
   im.onerror=()=>{$("iinfo").textContent="Couldn’t read that image.";};im.src=src;}
 function readFile(f){if(!f||!/^image\//.test(f.type)&&!/\.(svg|bmp|gif|webp|png|jpe?g)$/i.test(f.name))return;const r=new FileReader();r.onload=()=>load(r.result);r.readAsDataURL(f);}
 $("drop").onclick=()=>$("file").click();$("file").onchange=e=>readFile(e.target.files[0]);
@@ -261,7 +261,7 @@ $("slots").addEventListener("input",e=>{const i=e.target;if(i.dataset.c===undefi
   sel=p;document.querySelectorAll("#slots .slot").forEach(x=>x.classList.toggle("sel",+x.dataset.p===sel));info();view();});
 const move=d=>{const t=sel+d;if(t<0||t>24)return;[order[sel],order[t]]=[order[t],order[sel]];sel=t;slots();code();};
 $("up").onclick=()=>move(-1);$("dn").onclick=()=>move(1);
-$("rst").onclick=()=>{over={};order=Array(25).fill(null);for(let i=0;i<10;i++)order[15+i]=i;sel=15;view();slots();code();};
+$("rst").onclick=()=>{over={};order=defOrder();sel=15;view();slots();code();};
 
 let CODE="";
 function code(){
