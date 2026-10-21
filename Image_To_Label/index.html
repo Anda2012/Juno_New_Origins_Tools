@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Image to Label</title>
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../favicon.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#667085;--bd:#dde1e7;--ac:#2d6cdf;--act:#fff;--chip:#eaf0fc;--code:#f0f2f5;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--card:#1d2128;--tx:#e8eaee;--mut:#98a1b0;--bd:#2d333d;--ac:#6b9bff;--act:#0d1117;--chip:#222b3d;--code:#0f1216;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:12px;background:var(--card);border-bottom:1px solid var(--bd);padding:10px 14px}
+.top a{display:inline-flex;text-decoration:none;color:var(--ac);font-weight:650;padding:6px 10px;border:1px solid var(--bd);border-radius:9px;background:var(--bg)}
+.top a.crumb{border:0;background:none;padding:0;font-weight:500}.top span{color:var(--mut);font-size:14px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--card);z-index:19}
+.wrap{max-width:900px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:4px 0}h2{font-size:15px;margin:0 0 8px}.sub,.hint{color:var(--mut);font-size:13px}.sub{margin:0 0 10px}
+button,select,input,textarea{font:inherit;color:var(--tx)}
+button{border:1px solid var(--bd);background:var(--card);border-radius:9px;padding:7px 11px;cursor:pointer}
+button.pri,button.on{background:var(--ac);color:var(--act);border-color:var(--ac)}
+button:disabled{opacity:.45}
+input[type=text],input[type=number],select,textarea{border:1px solid var(--bd);border-radius:8px;background:var(--bg);padding:7px 9px;width:100%}
+input[type=range]{width:100%}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px}.row>*{flex:1;min-width:130px}.row>button{flex:none;min-width:0}
+label.f{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);margin-bottom:2px}label.f b{color:var(--tx)}
+.drop{border:2px dashed var(--bd);border-radius:12px;text-align:center;padding:22px 10px;cursor:pointer}.drop.over{border-color:var(--ac)}.drop b{color:var(--ac)}
+.stage{background:repeating-conic-gradient(#8883 0 25%,#0000 0 50%) 0 0/16px 16px;border:1px solid var(--bd);border-radius:10px;padding:8px;text-align:center;overflow:auto;max-height:60vh}
+.stage canvas{image-rendering:pixelated;max-width:100%;height:auto}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px;margin-top:8px}
+.slot{border:1px solid var(--bd);background:var(--card);border-radius:9px;padding:6px 4px;font-size:11px;text-align:center;line-height:1.25;cursor:pointer}.slot .sw2{display:block;position:relative;height:34px;border-radius:6px;border:1px solid var(--bd);margin-bottom:4px;overflow:hidden}.slot .sw2 input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}.slot .hx{color:var(--mut);font-size:10px}
+.slot.sel{outline:2px solid var(--ac);border-color:var(--ac)}.slot.empty{opacity:.55}
+.cols{display:flex;gap:6px;flex-wrap:wrap}.sw{width:34px;height:34px;border-radius:8px;border:1px solid var(--bd);padding:0}.sw.on{outline:2px solid var(--ac)}
+.orow{display:flex;gap:8px;align-items:flex-start;margin-top:8px}.orow textarea{flex:1;min-height:90px;font:12px ui-monospace,Menlo,monospace}.orow button{flex:none}
+.pl{font-size:12px;color:var(--mut);margin-top:10px}
+.stat{font-size:13px;margin-top:8px}.stat b{font-weight:650}
+details{margin-top:8px}summary{cursor:pointer;color:var(--ac)}
+ol,ul{margin:6px 0;padding-left:20px}
+[hidden]{display:none!important}
+a.l{color:var(--ac)}
+</style>
+</head>
+<body>
+<nav class="top"><a href="../index.html" class="homelink">← Home</a><span><a href="../index.html" class="homelink crumb">All Juno tools</a> › Image to Label</span></nav>
+<div class="wrap">
+<h1>Image to Label</h1>
+<p class="sub">Turn any image into text for a Label part, sized in centimetres, with editable colours. Runs in your browser; your image is never uploaded.</p>
+
+<div class="card">
+ <h2>1 · Image</h2>
+ <div class="drop" id="drop"><b>Tap to choose an image</b><br><span class="hint">PNG, JPG, GIF, WebP, SVG, BMP… or drop / paste one here</span></div>
+ <input type="file" id="file" accept="image/*" hidden>
+ <div class="hint" id="iinfo" style="margin-top:6px"></div>
+</div>
+
+<div id="app" hidden>
+<div class="card">
+ <h2>2 · Output size</h2>
+ <div class="row">
+  <div><label class="f">Width (cm)</label><input id="wcm" type="number" min="1" step="any" value="100"></div>
+  <div><label class="f">Height (cm)</label><input id="hcm" type="number" min="1" step="any"></div>
+ </div>
+ <div class="row"><div><label class="f">Resolution: characters across <b id="v_w">150</b></label><input id="w" type="range" min="10" max="400" step="10" value="150"></div></div>
+ <p class="hint" style="margin:4px 0 0">More characters means finer detail but longer code. Labels have a character limit, so squares up to about 200 across are safest.</p>
+ <div class="stat" id="sizeinfo"></div>
+ <details><summary>Calibrate the scale</summary>
+  <p class="hint">At Part Scale 1, one character cell is assumed to be <b id="cellshow"></b> cm. If your label comes out the wrong size, paste the code, measure the label’s width at Part Scale 1, and enter it here.</p>
+  <div class="row"><div><label class="f">Measured width at scale 1 (cm)</label><input id="meas" type="number" step="any" placeholder="e.g. 3000"></div><div><label class="f">Or set cell size directly (cm)</label><input id="cell" type="number" step="any" value="20"></div></div>
+ </details>
+</div>
+
+<div class="card">
+ <h2>3 · Colours</h2>
+ <div class="row">
+  <div><label class="f">Number of colours <b id="v_n">3</b></label><input id="n" type="range" min="1" max="10" value="3"></div>
+  <div><label class="f">Transparency cut-off <b id="v_d">100</b></label><input id="d" type="range" min="0" max="200" value="100"></div>
+ </div>
+ <div class="row">
+  <div><label class="f">Merge similar colours</label><select id="alg"><option value="0">Off (exact colours)</option><option value="1">On</option></select></div>
+  <div id="intw" hidden><label class="f">Merge strength <b id="v_i">30</b></label><input id="i" type="range" min="10" max="200" value="30"></div>
+  <div><label class="f">Transparent background</label><select id="tm"><option value="0">Off</option><option value="1">Auto (fill from top-left)</option><option value="2">A chosen colour</option></select></div>
+ </div>
+ <div id="tcw" hidden><p class="hint" style="margin:8px 0 2px">Make this colour transparent:</p><div class="cols" id="tcols"></div></div>
+ <details><summary>Adjust the picture first</summary>
+  <div class="row">
+   <div><label class="f">Brightness <b id="v_b">0</b></label><input id="b" type="range" min="-100" max="100" value="0"></div>
+   <div><label class="f">Contrast <b id="v_c">0</b></label><input id="c" type="range" min="-100" max="100" value="0"></div>
+   <div><label class="f">Saturation <b id="v_s">0</b></label><input id="s" type="range" min="-100" max="100" value="0"></div>
+  </div>
+ </details>
+ <p class="hint" style="margin:8px 0 0">Clear, high-contrast pictures with few colours convert best. For photos, turn on merging.</p>
+</div>
+
+<div class="card">
+ <h2>4 · Preview</h2>
+ <div class="stage"><canvas id="cv"></canvas></div>
+</div>
+
+<div class="card">
+ <h2>5 · Colour editing</h2>
+ <p class="hint" style="margin:0">The code stores each colour as a slot number (the Label part has 25 colour slots). Set the same colours in the same slot order in the game. Tap a colour swatch in the list to change that colour. Tap a slot’s number to select it, then move it earlier or later.</p>
+ <div class="slots" id="slots"></div>
+ <div class="row"><button id="up">◀ Move earlier</button><button id="dn">Move later ▶</button><button id="rst">Reset colours</button></div>
+ <div class="hint" id="slotinfo" style="margin-top:6px"></div>
+</div>
+
+<div class="card">
+ <h2>6 · Output code</h2>
+ <div class="orow"><textarea id="code" readonly></textarea><button id="copy" class="pri">Copy</button></div>
+ <div class="stat" id="clen"></div>
+ <details><summary>Clipboard too small? Copy in parts</summary>
+  <div class="row"><div><label class="f">Characters per part</label><input id="part" type="number" min="100" step="100" placeholder="e.g. 3000"></div></div>
+  <p class="hint">Paste the parts into the Label part one after another, in order.</p>
+  <div id="parts"></div>
+ </details>
+</div>
+</div>
+
+<div class="card">
+ <h2>How to use</h2>
+ <ol>
+  <li>Paste the code into the Label part’s text box.</li>
+  <li>Set the Label’s <b>Font</b> to Future Earth, <b>Horizontal Anchor</b> to Left, <b>Vertical Anchor</b> to Top and <b>Gradient</b> to Vertical.</li>
+  <li>Set the <b>Part Scale</b> in the Tinker panel to the value shown under Output size.</li>
+  <li>Set the 25 slot colours in the Label part to match section 5, in the same order. The code can’t carry the colours.</li>
+ </ol>
+ <p class="hint">If the picture looks wrong after pasting, drag FontSize, Width and Height to the maximum, then shrink them back.</p>
+</div>
+
+<p class="hint" style="text-align:center">The conversion logic (colour reduction, transparency and Label code format) is from the Image to Label tool in <a class="l" href="https://github.com/Qiqi29/jno-tools">Qiqi29/jno-tools</a> (MIT licence, <a class="l" href="https://qiqi29.github.io/jno-tools-web/">web version</a>). This page re-implements it with a new interface and adds centimetre sizing and colour editing.</p>
+</div>
+
+<script>
+/* Credit: the conversion logic (colour reduction, merging, transparency modes and Label code format)
+   follows the Image to Label tool in Qiqi29/jno-tools (MIT), https://github.com/Qiqi29/jno-tools.
+   This is a fresh implementation with a new interface, cm sizing and palette editing. */
+/*CORE*/
+const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+const hex2=n=>n.toString(16).toUpperCase().padStart(2,"0");
+const toHex=c=>"#"+hex2(c[0]).toLowerCase()+hex2(c[1]).toLowerCase()+hex2(c[2]).toLowerCase();
+const slotId=p=>"#"+hex2(p).repeat(3);
+
+/* adjust brightness / contrast / saturation in place */
+function adjust(data,b,c,s){
+  if(!b&&!c&&!s)return;
+  const cf=(259*(c*2.55+255))/(255*(259-c*2.55)),sf=1+s/100;
+  for(let i=0;i<data.length;i+=4){if(data[i+3]===0)continue;
+    let r=data[i],g=data[i+1],bl=data[i+2];
+    const l=0.299*r+0.587*g+0.114*bl;r=l+(r-l)*sf;g=l+(g-l)*sf;bl=l+(bl-l)*sf;
+    r=cf*(r+b*2.55-128)+128;g=cf*(g+b*2.55-128)+128;bl=cf*(bl+b*2.55-128)+128;
+    data[i]=Math.max(0,Math.min(255,r));data[i+1]=Math.max(0,Math.min(255,g));data[i+2]=Math.max(0,Math.min(255,bl));}
+}
+/* reduce to the most common colours; returns {cols, idx} with idx=-1 for transparent */
+function quantize(data,W,H,o){
+  const counts=new Map();
+  for(let i=0;i<data.length;i+=16){if(data[i+3]===0)continue;const k=data[i]+","+data[i+1]+","+data[i+2];counts.set(k,(counts.get(k)||0)+1);}
+  let src=counts;
+  if(o.merge){const m=new Map();
+    for(const [k,v] of counts){const rgb=k.split(",").map(Number);let hit=false;
+      for(const mk of m.keys()){if(dist(rgb,mk.split(",").map(Number))<o.strength){m.set(mk,m.get(mk)+v);hit=true;break;}}
+      if(!hit)m.set(k,v);}
+    src=m;}
+  const cols=[...src.entries()].sort((a,b)=>b[1]-a[1]).slice(0,o.num).map(e=>e[0].split(",").map(Number));
+  const idx=new Int16Array(W*H).fill(-1),alpha=new Uint8Array(W*H),cache=new Map();
+  for(let p=0;p<W*H;p++){const i=p*4,a=data[i+3];if(a===0||!cols.length)continue;
+    const k=data[i]+","+data[i+1]+","+data[i+2];let best=cache.get(k);
+    if(best===undefined){let bd=Infinity;best=0;const rgb=[data[i],data[i+1],data[i+2]];
+      cols.forEach((c,j)=>{const d=dist(rgb,c);if(d<bd){bd=d;best=j;}});cache.set(k,best);}
+    idx[p]=a<o.detail?-1:best;alpha[p]=a<o.detail?0:255;
+    if(o.tmode===2&&best===o.tcol)idx[p]=-1;}
+  if(o.tmode===1&&W>1&&H>1){ /* flood fill from the pixel at (1,1) */
+    const s=1+W,t=idx[s];
+    if(t!==-1){const st=[s],seen=new Uint8Array(W*H);
+      while(st.length){const p=st.pop();if(seen[p]||idx[p]!==t)continue;seen[p]=1;idx[p]=-1;
+        const x=p%W,y=(p/W)|0;if(x>0)st.push(p-1);if(x<W-1)st.push(p+1);if(y>0)st.push(p-W);if(y<H-1)st.push(p+W);}}}
+  return{cols,idx};
+}
+/* build the Label text. posOf[src] = slot position of each reduced colour */
+function toCode(idx,W,H,posOf){
+  let s="<mspace=0.2><line-height=0.2><size=0.65>",last=-1;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const v=idx[y*W+x];
+    if(v>=0&&posOf[v]!==last){s+="<"+slotId(posOf[v])+">";last=posOf[v];}
+    if(x===0)s+="<br>";
+    s+=v>=0?".":" ";}
+  s=s.replace(/ *<br>/g,"<br>").trimEnd();
+  return s.replace(/ {12,}/g,m=>"<space="+(m.length*0.2).toFixed(1).replace(/\.0$/,"")+">");
+}
+/*ENDCORE*/
+
+/* ---------- UI ---------- */
+(function(){var home=location.protocol==="file:"?"../index.html":(/\.github\.io$/i.test(location.hostname)?location.origin+"/"+location.pathname.split("/")[1]+"/":"https://anda2012.github.io/Juno_New_Origins_Tools/");
+document.querySelectorAll(".homelink").forEach(function(a){a.href=home;});})();
+const $=id=>document.getElementById(id);
+let img=null,Q=null,W=0,H=0,order=Array(25).fill(null),over={},sel=15,lock="w";
+for(let i=0;i<10;i++)order[15+i]=i;
+try{const c=localStorage.getItem("jlabel-cell");if(c)$("cell").value=c;}catch(e){}
+
+function load(src){const im=new Image();im.onload=()=>{img=im;$("app").hidden=false;$("iinfo").textContent="Loaded "+(im.naturalWidth||"?")+" × "+(im.naturalHeight||"?")+" px";order=Array(25).fill(null);for(let i=0;i<10;i++)order[15+i]=i;over={};sel=15;run();};
+  im.onerror=()=>{$("iinfo").textContent="Couldn’t read that image.";};im.src=src;}
+function readFile(f){if(!f||!/^image\//.test(f.type)&&!/\.(svg|bmp|gif|webp|png|jpe?g)$/i.test(f.name))return;const r=new FileReader();r.onload=()=>load(r.result);r.readAsDataURL(f);}
+$("drop").onclick=()=>$("file").click();$("file").onchange=e=>readFile(e.target.files[0]);
+$("drop").ondragover=e=>{e.preventDefault();$("drop").classList.add("over");};$("drop").ondragleave=()=>$("drop").classList.remove("over");
+$("drop").ondrop=e=>{e.preventDefault();$("drop").classList.remove("over");readFile(e.dataTransfer.files[0]);};
+document.addEventListener("paste",e=>{for(const it of e.clipboardData?.items||[])if(it.type.startsWith("image/")){readFile(it.getAsFile());break;}});
+
+const P=()=>({num:+$("n").value,detail:+$("d").value,merge:$("alg").value==="1",strength:+$("i").value,tmode:+$("tm").value,tcol:tcol});
+let tcol=0;
+function run(){
+  if(!img)return;
+  for(const k of["w","n","d","i","b","c","s"])$("v_"+k).textContent=$(k).value;
+  $("intw").hidden=$("alg").value!=="1";$("tcw").hidden=$("tm").value!=="2";
+  W=+$("w").value;const iw=img.naturalWidth||img.width||512,ih=img.naturalHeight||img.height||512;
+  H=Math.max(1,Math.floor(W/iw*ih));
+  const cv=document.createElement("canvas");cv.width=W;cv.height=H;
+  const x=cv.getContext("2d",{willReadFrequently:true});x.imageSmoothingQuality="high";x.drawImage(img,0,0,W,H);
+  const d=x.getImageData(0,0,W,H);adjust(d.data,+$("b").value,+$("c").value,+$("s").value);
+  Q=quantize(d.data,W,H,P());
+  if(tcol>=Q.cols.length)tcol=0;
+  size();view();slots();code();
+}
+function cellCm(){const m=parseFloat($("meas").value);if(m>0&&W)return m/W;const c=parseFloat($("cell").value);return c>0?c:20;}
+function size(){
+  const w=parseFloat($("wcm").value),h=parseFloat($("hcm").value);
+  if(lock==="w"&&w>0)$("hcm").value=r2(w*H/W);else if(lock==="h"&&h>0)$("wcm").value=r2(h*W/H);
+  const wc=parseFloat($("wcm").value)||0,cm=cellCm(),sc=wc/(W*cm);
+  $("cellshow").textContent=r2(cm);
+  $("sizeinfo").innerHTML="Grid: <b>"+W+" × "+H+"</b> characters · each pixel ≈ <b>"+r2(wc/W)+" cm</b> · set Part Scale to <b>"+(sc>=1?r2(sc):Math.round(sc*1e4)/1e4)+"</b>";
+}
+const r2=v=>Math.round(v*100)/100;
+$("wcm").oninput=()=>{lock="w";size();};$("hcm").oninput=()=>{lock="h";size();};
+$("cell").oninput=()=>{try{localStorage.setItem("jlabel-cell",$("cell").value);}catch(e){}$("meas").value="";size();};
+$("meas").oninput=size;
+for(const k of["w","n","d","i","b","c","s","alg","tm"])$(k).oninput=run;
+
+const slotHex=src=>over[src]||(Q.cols[src]?toHex(Q.cols[src]):"#000000");
+function view(){
+  const cv=$("cv");cv.width=W;cv.height=H;const x=cv.getContext("2d"),im=x.createImageData(W,H);
+  const rgb=Q.cols.map((_,i)=>{const h=slotHex(i);return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];});
+  for(let p=0;p<W*H;p++){const v=Q.idx[p];if(v<0)continue;const c=rgb[v];im.data[p*4]=c[0];im.data[p*4+1]=c[1];im.data[p*4+2]=c[2];im.data[p*4+3]=255;}
+  x.putImageData(im,0,0);cv.style.width=Math.min(W*Math.max(1,Math.floor(600/W)),W*6)+"px";
+  $("tcols").innerHTML=Q.cols.map((c,i)=>'<button class="sw'+(i===tcol?" on":"")+'" data-t="'+i+'" style="background:'+toHex(c)+'"></button>').join("");
+}
+$("tcols").onclick=e=>{const b=e.target.closest("[data-t]");if(b){tcol=+b.dataset.t;run();}};
+
+function slots(){
+  $("slots").innerHTML=order.map((src,p)=>{const used=src!==null&&Q.cols[src],h=used?slotHex(src):"#000000";
+    return '<div class="slot'+(p===sel?" sel":"")+(used?"":" empty")+'" data-p="'+p+'"><span class="sw2" style="background:'+h+'"><input type="color" value="'+h+'" data-c="'+p+'"'+(used?"":" disabled")+'></span>'+(p+1)+'<br>'+slotId(p)+'<div class="hx">'+(used?h:"unused")+'</div></div>';}).join("");
+  info();
+}
+function info(){const s=order[sel],ok=s!==null&&Q.cols[s];
+  $("slotinfo").textContent="Slot "+(sel+1)+" (code "+slotId(sel)+")"+(ok?": set this slot to "+slotHex(s)+" in the game.":": unused.");}
+$("slots").addEventListener("click",e=>{const t=e.target.closest("[data-p]");if(!t)return;sel=+t.dataset.p;
+  document.querySelectorAll("#slots .slot").forEach(x=>x.classList.toggle("sel",+x.dataset.p===sel));info();});
+$("slots").addEventListener("input",e=>{const i=e.target;if(i.dataset.c===undefined)return;
+  const p=+i.dataset.c,s=order[p];if(s===null||!Q.cols[s])return;
+  over[s]=i.value;i.parentNode.style.background=i.value;i.closest(".slot").querySelector(".hx").textContent=i.value;
+  sel=p;document.querySelectorAll("#slots .slot").forEach(x=>x.classList.toggle("sel",+x.dataset.p===sel));info();view();});
+const move=d=>{const t=sel+d;if(t<0||t>24)return;[order[sel],order[t]]=[order[t],order[sel]];sel=t;slots();code();};
+$("up").onclick=()=>move(-1);$("dn").onclick=()=>move(1);
+$("rst").onclick=()=>{over={};order=Array(25).fill(null);for(let i=0;i<10;i++)order[15+i]=i;sel=15;view();slots();code();};
+
+let CODE="";
+function code(){
+  const posOf=[];order.forEach((s,p)=>{if(s!==null&&posOf[s]===undefined)posOf[s]=p;});
+  CODE=toCode(Q.idx,W,H,posOf);$("code").value=CODE;
+  $("clen").innerHTML="Code length: <b>"+CODE.length.toLocaleString()+"</b> characters";
+  parts();
+}
+function parts(){
+  const n=parseInt($("part").value);
+  if(!(n>=100)){$("parts").innerHTML="";return;}
+  const a=[];for(let i=0;i<CODE.length;i+=n)a.push(CODE.slice(i,i+n));
+  $("parts").innerHTML=a.map((t,i)=>'<div class="pl">Part '+(i+1)+' of '+a.length+'</div><div class="orow"><textarea readonly>'+t.replace(/&/g,"&amp;").replace(/</g,"&lt;")+'</textarea><button data-cp="'+i+'">Copy</button></div>').join("");
+  $("parts")._a=a;
+}
+$("part").oninput=parts;
+async function cp(b,t){try{await navigator.clipboard.writeText(t);const o=b.textContent;b.textContent="Copied ✓";setTimeout(()=>b.textContent=o,1500);}catch(e){b.previousElementSibling.select();}}
+$("copy").onclick=e=>cp(e.target,CODE);
+$("parts").onclick=e=>{const b=e.target.closest("[data-cp]");if(b)cp(b,$("parts")._a[+b.dataset.cp]);};
+</script>
+</body>
+</html>
