@@ -45,6 +45,7 @@ code{background:var(--code);border-radius:6px;font:12.5px ui-monospace,Menlo,mon
  <div class="drop" id="drop"><b>Tap to choose a craft or subassembly .xml</b><br><span class="hint">or drop it here</span></div>
  <input type="file" id="file" accept=".xml,text/xml,application/xml" hidden>
  <div class="hint" id="finfo" style="margin-top:6px"></div>
+ <div id="nmw" hidden style="margin-top:10px"><label class="f">Craft name (edit to rename)</label><input id="cname" maxlength="100"></div>
 </div>
 
 <div id="app" hidden>
@@ -83,7 +84,8 @@ code{background:var(--code);border-radius:6px;font:12.5px ui-monospace,Menlo,mon
 document.querySelectorAll(".homelink").forEach(function(a){a.href=home;});})();
 const D=JSON.parse(document.getElementById("data").textContent),$=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-let TEXT="",NAME="craft.xml",rules=[],types={},bodyOf={},bodyCount={},scope={types:new Set(),bodies:new Set()};
+const nameEl=d=>{const r=d.documentElement;return r.tagName==="Craft"?r:d.querySelector("DesignerPart");};
+let ORIG="",TEXT="",NAME="craft.xml",rules=[],types={},bodyOf={},bodyCount={},scope={types:new Set(),bodies:new Set()};
 
 function fmt(v){let n=Number(v.toPrecision(7));if(n===0||!isFinite(n))return"0";const e=Math.floor(Math.log10(Math.abs(n)));
   if(e<-5||e>=7){const[m,x]=n.toExponential().split("e");return m+"E"+(x[0]==="-"?"-":"+")+x.replace(/[+-]/,"").padStart(2,"0");}return String(n);}
@@ -101,6 +103,7 @@ function load(text,name){
   const tags=new Set();parts.forEach(p=>[...p.children].forEach(c=>tags.add(c.tagName)));
   const extra=[...tags].filter(t=>!D.mods[t]);extra.forEach(t=>{D.mods[t]=[];});
   V={};cur="Config";FILT="all";$("pf").value="";
+  const nm=nameEl(d);ORIG=nm?nm.getAttribute("name")||"":"";$("cname").value=ORIG;$("nmw").hidden=!nm;
   $("finfo").textContent=name+" · "+parts.length+" parts · "+Object.keys(types).length+" part types";
   $("app").hidden=false;$("tchips").innerHTML="";
   chips();chipsM();plist();render();
@@ -156,7 +159,7 @@ function chips(){
   const bs=Object.keys(bodyCount);$("bwrap").hidden=!bs.length;
   $("bchips").innerHTML=bs.sort((a,b)=>a-b).map(b=>'<button class="chip'+(scope.bodies.has(b)?" on":"")+'" data-b="'+b+'">Body '+b+' ×'+bodyCount[b]+'</button>').join("");
 }
-$("smode").onchange=()=>{$("tchips").hidden=$("smode").value==="all";render();};$("sname").oninput=render;
+$("smode").onchange=()=>{$("tchips").hidden=$("smode").value==="all";render();};$("sname").oninput=render;$("cname").oninput=render;
 function inScope(p){
   const t=p.getAttribute("partType"),m=$("smode").value,nm=$("sname").value.trim().toLowerCase();
   if(m==="only"&&!scope.types.has(t))return false;if(m==="except"&&scope.types.has(t))return false;
@@ -166,6 +169,7 @@ function inScope(p){
 }
 
 /* ---- apply ---- */
+const renamed=()=>!$("nmw").hidden&&$("cname").value.trim()!==""&&$("cname").value.trim()!==ORIG;
 function run(apply){
   const rules=getRules();
   const doc=new DOMParser().parseFromString(TEXT,"application/xml"),parts=[...doc.querySelectorAll("Parts > Part")];
@@ -188,6 +192,7 @@ function run(apply){
       });
     });
   });
+  const ne=nameEl(doc);if(apply&&ne&&renamed())ne.setAttribute("name",$("cname").value.trim());
   return{doc,changes,skips,scoped,touched:touched.size,total:parts.length};
 }
 function render(){
@@ -196,12 +201,13 @@ function render(){
   $("actsum").textContent=rules.length?rules.length+" attribute"+(rules.length===1?"":"s")+" selected with a value.":"";
   $("scope").innerHTML="Applies to <b>"+R.scoped+"</b> of "+R.total+" parts.";
   $("sum").innerHTML=rules.length?"<b>"+R.changes.length+"</b> attribute edit"+(R.changes.length===1?"":"s")+" on <b>"+R.touched+"</b> part"+(R.touched===1?"":"s")+
-    R.skips.map((s,i)=>s?'<br><span class="bad">“'+esc(ruleText(rules[i]))+'”: skipped on '+s+' (element missing)</span>':"").join(""):"Tick an attribute and enter a value to see a preview.";
+    R.skips.map((s,i)=>s?'<br><span class="bad">“'+esc(ruleText(rules[i]))+'”: skipped on '+s+' (element missing)</span>':"").join(""):(renamed()?"":"Tick an attribute and enter a value to see a preview.");
   $("chg").innerHTML=R.changes.slice(0,60).map(c=>'<div class="ch"><small>#'+c.id+' '+esc(c.type)+'</small> · '+esc(c.r.mod+"."+c.r.prop)+': '+(c.created?"<i>new element</i>":esc(c.old??"(not set)"))+(c.nv===null?" → removed":" → <b>"+esc(c.nv)+"</b>")+'</div>').join("")+(R.changes.length>60?'<div class="ch hint">…and '+(R.changes.length-60)+' more</div>':"");
-  $("dl").disabled=$("cp").disabled=!R.changes.length;
+  if(renamed())$("sum").innerHTML+=(rules.length?"<br>":"")+"Craft name: <b>"+esc(ORIG)+"</b> → <b>"+esc($("cname").value.trim())+"</b>";
+  $("dl").disabled=$("cp").disabled=!R.changes.length&&!renamed();
 }
 const out=()=>'<?xml version="1.0" encoding="utf-8"?>\n'+new XMLSerializer().serializeToString(run(true).doc.documentElement)+"\n";
-$("dl").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([out()],{type:"text/xml"}));a.download=NAME.replace(/\.xml$/i,"")+"_edited.xml";document.body.appendChild(a);a.click();a.remove();}catch(e){}};
+$("dl").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([out()],{type:"text/xml"}));a.download=((renamed()?$("cname").value.trim().replace(/[^\w\- ]+/g,"").replace(/\s+/g,"_"):"")||NAME.replace(/\.xml$/i,""))+"_edited.xml";document.body.appendChild(a);a.click();a.remove();}catch(e){}};
 $("cp").onclick=async()=>{try{await navigator.clipboard.writeText(out());$("cp").textContent="Copied ✓";setTimeout(()=>$("cp").textContent="Copy XML",1500);}catch(e){}};
 render();
 </script>
