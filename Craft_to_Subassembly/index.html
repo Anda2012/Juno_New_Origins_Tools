@@ -70,8 +70,10 @@ textarea{width:100%;height:140px;margin-top:8px;font:12px ui-monospace,Menlo,mon
 
   <div id="app" hidden>
     <div class="card">
-      <div class="sub" style="margin:0 0 4px">Subassembly name</div>
-      <input type="text" id="name">
+      <b>Rename the subassembly</b>
+      <div class="sub" style="margin:2px 0 6px">Starts as the craft’s name. This is the name shown in the game and used for the download file.</div>
+      <div style="display:flex;gap:8px"><input type="text" id="name" maxlength="100" placeholder="Subassembly name"><button id="nreset" style="flex:none">Use craft name</button></div>
+      <div class="sub" id="nfile" style="margin:6px 0 0"></div>
       <label class="opt"><input type="checkbox" id="orph" checked> <span>Keep parts that end up disconnected from the root. Untick this to drop them automatically (the game may reject a subassembly that is in several pieces).</span></label>
       <label class="opt"><input type="checkbox" id="center" checked> <span>Re-center on the average part position (what the game does)</span></label>
     </div>
@@ -133,6 +135,7 @@ function load(text,name){
   const rp=parts.find(p=>p.getAttribute("rootPart")==="true"); rootId=rp?rp.getAttribute("id"):null;
   inc=new Set(parts.map(p=>p.getAttribute("id")));
   $("name").value=r.getAttribute("name")||name.replace(/\.xml$/i,"");
+  window.CRAFTNAME=$("name").value;showFile();
   $("app").hidden=false; $("bar").hidden=false; $("outcard").hidden=true;
   buildChips(); render();
 }
@@ -211,6 +214,9 @@ function build(){
   return '<?xml version="1.0" encoding="utf-8"?>\n<DesignerParts>\n  <DesignerPart name="'+esc(name)+'" category="Sub Assemblies" description="" order="0" showInDesigner="true">\n    <Assembly xmlVersion="'+esc(doc.getAttribute("xmlVersion")||"15")+'">\n      <Parts>\n'+ind(clones,4+1)+'      </Parts>\n      <Connections>\n'+ind(cl,5)+'      </Connections>\n      <Collisions />\n      <Bodies />\n    </Assembly>\n  </DesignerPart>\n</DesignerParts>\n';
 }
 
+function showFile(){$("nfile").textContent="Saves as: "+outName();}
+$("name").addEventListener("input",()=>showFile());
+$("nreset").onclick=()=>{$("name").value=window.CRAFTNAME||"";showFile();};
 function outName(){return ($("name").value.trim()||"Subassembly").replace(/[^\w\-. ]+/g,"").replace(/\s+/g,"_")+"_subassembly.xml";}
 
 $("dl").onclick=async()=>{
