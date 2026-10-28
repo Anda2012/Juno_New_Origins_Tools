@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Vizzy Editor</title>
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../favicon.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<style>
+:root{--panel:#1d2127;--dark:#171717;--bd:#2f3139;--btn:#2e353e;--btnh:#3e4854;--btnt:#abb4be;--pri:#00b7ed;--prih:#00a1f2;--lbl:#808697;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none}
+html,body{height:100%;margin:0;overflow:hidden;background:#2C2E33;color:#fff;font:13px/1.2 "Oxygen","Segoe UI",system-ui,sans-serif;overscroll-behavior:none}
+#cv{position:absolute;inset:0;touch-action:none;background-color:#2C2E33;background-image:linear-gradient(#63636313 1px,transparent 1px),linear-gradient(90deg,#63636313 1px,transparent 1px);background-size:32px 32px}
+#cv.nogrid{background-image:none}
+#world{position:absolute;left:0;top:0}
+.stack{position:absolute}
+.blk{display:inline-flex;align-items:center;gap:6px;color:#fff;touch-action:none;cursor:grab;vertical-align:middle;max-width:none}
+.blk.ins{display:flex;width:max-content;min-height:34px;padding:4px 10px;border-radius:6px;margin-bottom:2px;position:relative}
+.blk.ex{min-height:26px;padding:2px 10px;border-radius:14px;margin:1px 0}
+.blk.ev{border-radius:6px 6px 14px 14px;padding:6px 14px}
+.cblk{display:block;width:max-content;margin-bottom:2px}
+.cblk>.head{margin-bottom:0;border-radius:6px 6px 0 0}
+.cblk>.body{display:flex}.cblk>.body>.bar{width:20px;flex:none}.cblk>.body>.inner{min-width:140px;min-height:14px;padding-top:2px}
+.cblk>.foot{height:12px;border-radius:0 0 6px 6px;width:100%}
+.tx{white-space:nowrap}
+.slot{display:inline-flex;align-items:center;min-height:22px;border-radius:12px;background:#0003;padding:0 2px;min-width:26px}
+.slot>.blk.ex{margin:0;border:1px solid #0004}
+.k{background:#262626;border-radius:11px;border:0;color:#fff;font:inherit;padding:2px 8px;min-width:30px;height:22px;outline:none;-webkit-user-select:text;user-select:text}
+.k.b{padding:2px 4px}
+.pill{border-radius:11px;padding:2px 9px;font-weight:600;height:22px;display:inline-flex;align-items:center;cursor:grab;touch-action:none}
+.pm{background:#0004;border:0;color:#fff;border-radius:10px;width:20px;height:20px;line-height:18px;padding:0;cursor:pointer}
+#bar{position:absolute;left:0;top:0;bottom:0;width:52px;background:var(--panel);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);z-index:30}
+.cat{width:50px;height:50px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--btnt);cursor:pointer;font-size:20px;border:0;background:none;border-left:3px solid transparent}
+.cat:hover{background:#22292e}.cat.on{color:#fff;border-left-color:var(--pri);background:#22292e}
+.sep{height:30px;background:var(--dark);flex:none}
+.fly{position:absolute;left:52px;top:0;bottom:0;width:300px;max-width:calc(100vw - 60px);background:var(--panel);border-right:1px solid var(--bd);z-index:29;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.fh{height:30px;background:var(--dark);display:flex;align-items:center;justify-content:space-between;padding:0 10px;color:var(--pri);font-weight:700;letter-spacing:.04em;flex:none}
+.fh b{cursor:pointer;color:var(--btnt);font-size:16px}
+.fb{overflow:auto;flex:1;padding:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.btn{height:30px;border:0;border-radius:3px;background:var(--btn);color:var(--btnt);font:inherit;font-weight:600;cursor:pointer;padding:0 12px;width:100%}
+.btn:hover{background:var(--btnh)}.btn.pri{background:var(--pri);color:#fff}.btn.pri:hover{background:var(--prih)}.btn:disabled{opacity:.45}
+.hr{height:1px;background:var(--bd);width:100%;margin:4px 0}
+.row2{display:flex;gap:8px;width:100%}.row2 .btn{width:50%}
+.tog{display:flex;justify-content:space-between;align-items:center;width:100%;color:var(--lbl)}
+#trash{position:absolute;right:16px;top:calc(16px + env(safe-area-inset-top,0px));width:150px;height:110px;border:2px dashed #fff5;border-radius:10px;display:none;align-items:center;justify-content:center;flex-direction:column;color:#fffc;z-index:40;font-size:12px;background:#0004}
+#trash.hot{border-color:#e7515a;background:#e7515a33}#trash span{font-size:34px}
+#msg{position:absolute;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#111111f0;padding:8px 16px;border-radius:6px;z-index:50;display:none;max-width:70vw;text-align:center}
+#ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:100;opacity:.92}
+.hl{outline:2px solid var(--pri);outline-offset:1px}.hlline{position:fixed;height:4px;background:var(--pri);z-index:90;pointer-events:none;border-radius:2px;display:none}
+#modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;z-index:200}
+#modal>div{background:var(--panel);border:1px solid var(--bd);border-radius:4px;padding:18px;width:min(420px,92vw);max-height:80vh;overflow:auto;display:flex;flex-direction:column;gap:8px}
+#modal h3{margin:0;color:var(--pri);font-size:14px}#modal input{background:#171b1f;border:1px solid var(--bd);color:#fff;padding:8px;border-radius:3px;font:inherit;-webkit-user-select:text;user-select:text}
+.credit{font-size:11px;color:var(--lbl);margin-top:auto;padding-top:8px}.credit a{color:var(--pri)}
+</style>
+</head>
+<body>
+<div id="cv"><div id="world"></div></div>
+<div id="bar"></div>
+<div class="fly" id="fly" hidden></div>
+<div id="trash"><span>🗑</span>Drag to Delete</div>
+<div id="msg"></div><div class="hlline" id="hl"></div><div id="ghost"></div>
+<div id="modal"><div id="mbox"></div></div>
+<input type="file" id="file" accept=".xml,text/xml" hidden>
+
+<script type="application/json" id="data">{"col":{"Instruction":"#373737","InstructionBlock":"#3b99d8","CraftInstruction":"#373737","CraftExpression":"#373737","Event":"#db942e","Operator":"#2e80b7","Input":"#262626","GlobalVariable":"#00b200","LocalVariable":"#ffb200","Constant":"#262626","Comment":"#4E8C51","CustomExpression":"#8B34A9","CustomInstruction":"#8B34A9","CallCustom":"#DC77FF","List":"#555A87","WidgetInstruction":"#3b99d8","WidgetExpression":"#2e80b7"},"st":{"repeat":{"c":"InstructionBlock","f":"repeat (0:ZeroOrMore)","t":"Repeats the block of code the number of times specified."},"for":{"c":"InstructionBlock","f":"for |i| from (0) to (1) by (2)","t":"Loops from the starting value to the end value by the step and provides a local variable 'i' with the current value."},"while":{"c":"InstructionBlock","f":"while {0}","t":"Loops until its condition is no longer true."},"wait-seconds":{"c":"Instruction","f":"wait (0:ZeroOrMore) seconds","t":"Waits for the specified number of seconds. It is also recommended to place a wait at the end of while and repeat loops, as it can improve performance."},"wait-until":{"c":"Instruction","f":"wait until {0}","t":"Waits until the condition is true."},"if":{"c":"InstructionBlock","f":"if {0} then","t":"Only executes the code if the condition is true."},"else-if":{"c":"InstructionBlock","f":"else if {0} then","t":"Only executes if previous if/else if blocks were false and this condition is true. Must follow an if or else if block."},"else":{"c":"InstructionBlock","f":"else","t":"Only executes if all previous if/else if blocks were false. Must follow an if or else if block."},"display":{"c":"Instruction","f":"display (0)","t":"Displays the message at the top of the screen."},"log":{"c":"Instruction","f":"log (0)","t":"Logs the message to the output log, which can be viewed by clicking View Log in the part's inspector panel during flight."},"break":{"c":"Event","f":"break","t":"Breaks out of a while or repeat loop."},"comment":{"c":"Instruction","f":"# (0)","t":"This instruction does not execute and can be used to place comments in your program to help explain how it works.","x":"Comment"},"comment-text":{"c":"Constant","x":"Comment"},"play-beep":{"c":"Instruction","f":"beep (0:ZeroOrMore) Hz at (1:ZeroToOne) volume for (2:ZeroOrMore) seconds","t":"Plays a beep sound with the specified parameters."},"note-frequency":{"c":"Instruction","f":"frequency of (0) octave (1:ZeroOrMore)","t":"Gets the frequency of the note at the octave."},"op-add":{"c":"Operator","f":"(0:Number) + (1:Number)","t":"Adds the left and right numbers together and returns the result."},"op-sub":{"c":"Operator","f":"(0:Number) - (1:Number)","t":"Subtracts the right number from the left number and returns the result."},"op-div":{"c":"Operator","f":"(0:Number) / (1:Number)","t":"Divides the left number by the right number and returns the result."},"op-mul":{"c":"Operator","f":"(0:Number) * (1:Number)","t":"Multiplies the left and right numbers together and returns the result."},"op-exp":{"c":"Operator","f":"(0:Number) ^ (1:Number)","t":"Raises the left number to the power specified on the right side."},"op-mod":{"c":"Operator","f":"(0:Number) % (1:Number)","t":"Returns the remainder of the left number divided by the right number."},"op-rand":{"c":"Operator","f":"random (0:Number) to (1:Number)","t":"Returns a random number between the two numbers."},"op-atan-2":{"c":"Operator","f":"atan2 of (0) and (1)","t":"Returns the angle in radians between the positive x-axis and the ray to the point."},"op-min":{"c":"Operator","f":"min of (0:Number) and (1:Number)","t":"Returns the smaller of the two numbers."},"op-max":{"c":"Operator","f":"max of (0:Number) and (1:Number)","t":"Returns the larger of the two numbers."},"op-and":{"c":"Operator","f":"{0} and {1}","t":"Returns true if both sides are true."},"op-or":{"c":"Operator","f":"{0} or {1}","t":"Returns true if either side is true."},"op-not":{"c":"Operator","f":"not {0}","t":"Returns true if the condition is false. Returns false if the condition is true."},"op-eq":{"c":"Operator","f":"(0:Number) = (1:Number)","t":"Returns true if both sides are equal."},"op-lt":{"c":"Operator","f":"(0:Number) < (1:Number)","t":"Returns true if the left number is less than the right number."},"op-lte":{"c":"Operator","f":"(0:Number) <= (1:Number)","t":"Returns true if the left number is less than or equal to the right number."},"op-gt":{"c":"Operator","f":"(0:Number) > (1:Number)","t":"Returns true if the left number is greater than the right number."},"op-gte":{"c":"Operator","f":"(0:Number) >= (1:Number)","t":"Returns true if the left number is greater than or equal to the right number."},"op-math":{"c":"Operator","f":"[x] of (0:Number)","t":"Returns the result of running the math function on the specified number. Math functions such as sin, cos, and tan expect the angle to be in radians."},"conditional":{"c":"Operator","f":"if (0) then (1) else (2)","t":"Evaluates the condition and returns the specified result."},"vec":{"c":"Operator","f":"vec (0),(1),(2)","t":"Creates a vector from the x, y, and z components."},"vec-op-1":{"c":"Operator","f":"(0) [op]","t":"Access information from a vector."},"vec-op-2":{"c":"Operator","f":"(0) [op] (1)","t":"Returns the result of the operation between the two vectors."},"vec-op-color":{"c":"Operator","f":"hex color (0)","t":"Converts a hexadecimal color (ie #FF0000) into a color vector (ie 1,0,0)."},"join":{"c":"Operator","f":"join ","t":"Returns the result of joining the two or more strings of text together.","d":1},"letter":{"c":"Operator","f":"letter (0:OneOrMore) of (1)","t":"Returns the letter at the specified location."},"substring":{"c":"Operator","f":"letters (0:ZeroOrMore) to (1:ZeroOrMore) of (2)","t":"Returns the letters of the text between the start and end locations. If 0 is specified for start/end then the start/end of the text will be used."},"length":{"c":"Operator","f":"length of (0)","t":"Returns the length of the string of text."},"contains":{"c":"Operator","f":"(0) contains (1)","t":"Returns true if the text on the left contains the text on the right."},"format":{"c":"Operator","f":"format ","t":"Advaned formatting that uses C#'s built-in System.String method. Refer to Microsoft's documentation for more information.","d":1},"friendly":{"c":"Operator","f":"friendly [friendly] (0)","t":"Formats a value of a specified unit to user friendly text."},"activate-stage":{"c":"Event","f":"activate stage","t":"Activates the next stage in the craft."},"set-input":{"c":"CraftInstruction","f":"set [x] to (0:NegOneToPosOne)","t":"Sets the selected input of the craft to the specified amount. Value must be between -1 and 1. For example, if you want to set throttle to 65%, then set this to 0.65"},"set-heading":{"c":"CraftInstruction","f":"set craft [x] to (0)","t":"Sets the pitch or heading the craft should target."},"set-target":{"c":"CraftInstruction","f":"target node (0)","t":"Sets the craft's current target planet or craft."},"set-ag":{"c":"CraftInstruction","f":"set activation group (0:OneOrMore) to (1)","t":"Activates or deactivates the specified activation group. Setting an AG to true activates it. False deactivates it."},"lock-nav-sphere":{"c":"CraftInstruction","f":"lock heading on [x]","t":"Locks the nav sphere on the specified indicator."},"lock-nav-sphere-vector":{"c":"CraftInstruction","f":"lock heading on vector (0)","t":"Locks the nav sphere on the specified vector in PCI coordinates."},"set-time-mode":{"c":"CraftInstruction","f":"set time mode to [x]","t":"Sets the current time mode of the game."},"set-camera":{"c":"CraftInstruction","f":"set camera [x] to (0)","t":"Sets the property on the camera."},"set-part":{"c":"CraftInstruction","f":"set part (0) [x] to (1)","t":"Sets the property of the part with the specified ID."},"switch-craft":{"c":"CraftInstruction","f":"switch to craft (0:ZeroOrMore)","t":"Switches to the craft with the specified ID. If the craft is far away, then this program may stop executing."},"prop-altitude":{"c":"CraftExpression","f":"altitude [x]","t":"Returns the altitude in meters."},"prop-orbit":{"c":"CraftExpression","f":"orbit [x]","t":"Returns the orbit parameter."},"prop-atmosphere":{"c":"CraftExpression","f":"atmosphere [x]","t":"Returns the atmosphere property."},"prop-performance":{"c":"CraftExpression","f":"performance [x]","t":"Returns the performance property of the craft."},"prop-fuel":{"c":"CraftExpression","f":"fuel [x]","t":"Returns the remaining fuel."},"prop-nav":{"c":"CraftExpression","f":"nav [x]","t":"Returns the specified navigation property of the craft."},"prop-velocity":{"c":"CraftExpression","f":"velocity [x]","t":"Returns the specified velocity in m/s (or m/s2 for accelerations)."},"prop-input":{"c":"CraftExpression","f":"input [x]","t":"Returns the craft's current value for the specified input. The value returned will be between -1 and 1."},"prop-misc":{"c":"CraftExpression","f":"misc [x]","t":"Miscellanous properties."},"prop-time":{"c":"CraftExpression","f":"time [x]","t":"Returns the specified time in seconds."},"prop-name":{"c":"CraftExpression","f":"name of [x]","t":"Returns the current name the selected item."},"prop-mfd-widget":{"c":"WidgetExpression","f":"get widget (0) [x]","t":"Returns information about the MFD widget with the specified name."},"set-mfd-widget":{"c":"WidgetInstruction","f":"set widget (0) [x] to (1)","t":"Sets the property of MFD widget with the specified name."},"set-mfd-order-front":{"c":"WidgetInstruction","f":"bring widget (0) in front of (1)","t":"Brings the widget in front of the target widget or in front of all other widgets if the target widget does not exist. Note: Widgets must share the same parent."},"set-mfd-order-back":{"c":"WidgetInstruction","f":"send widget (0) behind (1)","t":"Sends the widget behind the target widget, or behind everything if the target widget does not exist. Note: Widgets must share the same parent."},"prop-mfd-sprite":{"c":"WidgetExpression","f":"get sprite (0) [x]","t":"Returns information about the MFD sprite with the specified name."},"set-mfd-sprite":{"c":"WidgetInstruction","f":"set sprite (0) [x] to (1)","t":"Sets the property of MFD sprite widget with the specified name."},"set-mfd-navball":{"c":"WidgetInstruction","f":"set navball (0) [x] to (1)","t":"Sets the property of MFD navball widget with the specified name."},"set-mfd-map":{"c":"WidgetInstruction","f":"set map (0) [x] to (1)","t":"Sets the property of MFD map widget with the specified name."},"set-mfd-texture-setpixel":{"c":"WidgetInstruction","f":"set texture (0) pixel at x=(1), y=(2) to (3)","t":"Sets the pixel at the coordinate to the specified pixel. Note: Coordinates start at 1, not 0."},"set-mfd-texture-initialize":{"c":"WidgetInstruction","f":"initialize texture (0) width (1) and height (2)","t":"Initializes the texture to the specified width and height."},"prop-mfd-texture-getpixel":{"c":"WidgetInstruction","f":"get texture (0) pixel at x=(1), y=(2)","t":"Gets the pixel at the specified coordinates. Note: Coordinates start at 1, not 0."},"prop-mfd-gauge":{"c":"WidgetExpression","f":"get gauge (0) [x]","t":"Returns information about the MFD gauge with the specified name."},"set-mfd-gauge":{"c":"WidgetInstruction","f":"set gauge (0) [x] to (1)","t":"Sets the property of MFD gauge widget with the specified name."},"set-mfd-line-points":{"c":"WidgetInstruction","f":"set line (0) from (1) to (2)","t":"Sets the line widget to connect the first point to the second point."},"set-mfd-line":{"c":"WidgetInstruction","f":"set line (0) [x] to (1)","t":"Sets the property of the line widget."},"prop-mfd-pos":{"c":"WidgetExpression","f":"convert (1) [x] for (0)","t":"Converts the position vector beteween a widget's local coordinate system and the display's global coordinate system."},"prop-mfd-event":{"c":"WidgetExpression","f":"get widget (0) [x] message","t":"Gets the message name to broadcast when the widget receives the input."},"set-mfd-event":{"c":"WidgetInstruction","f":"set widget (0) to broadcast (1) on [x] with data (2)","t":"Sets the message name to broadcast when the widget receives the input. The message received will include a data list where the first element is the data specified here, the second element is the widget name, and the third element is the local position of the input relative to the widget."},"prop-mfd-label":{"c":"WidgetExpression","f":"get label (0) [x]","t":"Returns information about the MFD label widget with the specified name."},"set-mfd-label":{"c":"WidgetInstruction","f":"set label (0) [x] to (1)","t":"Sets the property of MFD text widget with the specified name."},"set-mfd-alignment":{"c":"WidgetInstruction","f":"set label (0) alignment to [x]","t":"Sets alignment of the label's text."},"set-mfd-anchor":{"c":"WidgetInstruction","f":"set widget (0) anchor to [x]","t":"Sets where the widget is anchored to its parent."},"create-mfd-widget":{"c":"WidgetInstruction","f":"create [x] widget named (0)","t":"Creates the MFD widget of the specified type with the specified name."},"destroy-mfd-widget":{"c":"WidgetInstruction","f":"destroy widget named (0)","t":"Destroys the MFD widget with the specified name."},"destroy-all-mfd-widgets":{"c":"WidgetInstruction","f":"destroy all widgets","t":"Destroys all of the the MFD widgets."},"activation-group":{"c":"CraftExpression","f":"activation group (0:OneOrMore)","t":"Returns the status of the activation group. True indicates the AG is active."},"planet-to-lat-long-agl":{"c":"CraftInstruction","f":"convert (0) to lat/long/AGL","t":"Converts the position vector to a (latitude, longitude, AGL) vector."},"planet-to-position":{"c":"CraftInstruction","f":"convert (0) to position","t":"Converts the (latitude, longitude, AGL) vector to a position vector."},"planet":{"c":"CraftInstruction","f":"planet (0) [x]","t":"Gets a property of the specified planet."},"terrain-query":{"c":"CraftInstruction","f":"get terrain [x] at lat/long (0)","t":"Gets information about the current planet's terrain at the specified (latitude, longitude, 0) vector. The z component of the vector is not used."},"part":{"c":"CraftInstruction","f":"part (0:ZeroOrMore) [x]","t":"Gets a property of the part with the specified ID."},"part-id":{"c":"CraftInstruction","f":"part ID of (0)","t":"The ID of the first part found with the specified name or -1 if none are found."},"part-transform":{"c":"CraftInstruction","f":"part (0) [x] (1)","t":"Converts the vector between local and PCI coordinates."},"craft":{"c":"CraftInstruction","f":"craft (0:ZeroOrMore) [x]","t":"Gets a property of the craft with the specified ID."},"craft-id":{"c":"CraftInstruction","f":"craft ID of (0)","t":"The ID of the first craft found with the specified name or -1 if none are found. If no name is provided, then the ID of the player's craft is returned."},"true":{"c":"Operator","f":"true"},"false":{"c":"Operator","f":"false"},"flight-start":{"c":"Event","f":"on start","t":"Event called when the craft enters the flight scene for the first time."},"part-collision":{"c":"Event","f":"on |part| collide with |other| at |velocity| and |impulse|","t":"Event called when a part in the craft has collided with something else."},"part-explode":{"c":"Event","f":"on |part| exploded","t":"Event called when a part in the craft explodes."},"craft-docked":{"c":"Event","f":"on |craftA| and |craftB| docked","t":"Event called when this craft docks with another craft. NOTE: Part IDs may change after docking with another craft."},"change-soi":{"c":"Event","f":"on enter |planet| SOI"},"receive-msg":{"c":"Event","f":"receive (0) with |data|","t":"Called when the flight program receives a message, with its data set to the value that was broadcasted."},"broadcast-msg":{"c":"Instruction","f":"broadcast (0) with data (1)","t":"Sends a message with the specified data to all matching receive message events in this program."},"broadcast-msg-craft":{"c":"Instruction","f":"broadcast (0) with data (1) to craft","t":"Sends a message with the specified data to all matching receive message events in this craft."},"set-variable":{"c":"Instruction","f":"set variable (0) to (1)","t":"Sets the value of the variable."},"change-variable":{"c":"Instruction","f":"change variable (0) by (1)","t":"Changes the value of the number variable by the specified amount."},"global-variable":{"c":"GlobalVariable","t":"Variable that can change its value."},"local-variable":{"c":"LocalVariable","t":"Variable that can change its value."},"list-variable":{"c":"List","t":"Variable that can hold a list of items."},"user-input":{"c":"Instruction","f":"set variable (0) to user input (1)","t":"Sets the value of the variable to text received from an input dialog presented to the user with the specified message."},"list-init":{"c":"List","f":"set list (0) to (1)","t":"Initializes the list with a set of comma separated values."},"list-add":{"c":"List","f":"add (1) to (0)","t":"Adds the item to the end of the list."},"list-insert":{"c":"List","f":"insert (1) at (2:OneOrMore) in (0)","t":"Inserts the item at the index in the list. Index 1 is the first item in the list."},"list-remove":{"c":"List","f":"remove (1:OneOrMore) from (0)","t":"Removes the item at the index from the list. Index 1 is the first item in the list."},"list-set":{"c":"List","f":"set (2:OneOrMore) in (0) to (1)","t":"Sets the item at the index in the list. If the list doesn't have an item at that index, nothing will be set. Index 1 is the first item in the list."},"list-clear":{"c":"List","f":"remove all from (0)","t":"Removes all items in the list."},"list-sort":{"c":"List","f":"sort (0)","t":"Sorts the items in the list in ascending order."},"list-reverse":{"c":"List","f":"reverse (0)","t":"Reverses the order of the items in the list."},"list-create":{"c":"List","f":"create list from (0)","t":"Creates a new list from a list of comma separated values."},"list-get":{"c":"List","f":"item (1:OneOrMore) in (0)","t":"Gets the item in the list at the index. Index 1 is the first item in the list."},"list-length":{"c":"List","f":"length of (0)","t":"Returns the length of the list."},"list-index":{"c":"List","f":"index of (1) in list (0)","t":"Gets the index of the item in the list. Index 1 is the first item in the list. If the item is not in the list, then 0 is returned."},"constant":{"c":"Constant"},"text":{"c":"Constant"},"list":{"c":"Constant"},"custom-expression":{"c":"CustomExpression"},"custom-instruction":{"c":"CustomInstruction"},"call-custom-expression":{"c":"CraftInstruction","x":"CallCustom"},"call-custom-instruction":{"c":"CraftInstruction","x":"CallCustom"}},"cats":[{"n":"Program Flow","i":[{"t":"WaitSeconds","a":{"style":"wait-seconds"},"k":[{"t":"Constant","a":{"number":"1"},"k":[]}]},{"t":"WaitUntil","a":{"style":"wait-until"},"k":[{"t":"Constant","a":{"bool":"false"},"k":[]}]},{"t":"Repeat","a":{"style":"repeat"},"k":[{"t":"Constant","a":{"number":"10"},"k":[]}]},{"t":"While","a":{"style":"while"},"k":[{"t":"Constant","a":{"bool":"true"},"k":[]}]},{"t":"For","a":{"style":"for"},"k":[{"t":"Constant","a":{"number":"1"},"k":[]},{"t":"Constant","a":{"number":"10"},"k":[]},{"t":"Constant","a":{"number":"1"},"k":[]}]},{"t":"If","a":{"style":"if"},"k":[{"t":"Constant","a":{"bool":"false"},"k":[]}]},{"t":"ElseIf","a":{"style":"else-if"},"k":[{"t":"Constant","a":{"bool":"false"},"k":[]}]},{"t":"ElseIf","a":{"style":"else"},"k":[{"t":"Constant","a":{"bool":"true"},"k":[]}]},{"t":"DisplayMessage","a":{"style":"display"},"k":[{"t":"Constant","a":{"text":"text"},"k":[]},{"t":"Constant","a":{"number":"7"},"k":[]}]},{"t":"LogMessage","a":{"style":"log"},"k":[{"t":"Constant","a":{"text":"text"},"k":[]}]},{"t":"Break","a":{"style":"break"},"k":[]},{"t":"Comment","a":{"style":"comment"},"k":[{"t":"Constant","a":{"text":"Comment Text","style":"comment-text","canReplace":"false"},"k":[]}]}]},{"n":"Operators","i":[{"t":"BinaryOp","a":{"style":"op-add","op":"+"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BinaryOp","a":{"style":"op-sub","op":"-"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BinaryOp","a":{"style":"op-div","op":"/"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BinaryOp","a":{"style":"op-mul","op":"*"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BinaryOp","a":{"style":"op-exp","op":"^"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BinaryOp","a":{"style":"op-mod","op":"%"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BinaryOp","a":{"style":"op-rand","op":"rand"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BinaryOp","a":{"style":"op-min","op":"min"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BinaryOp","a":{"style":"op-max","op":"max"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BoolOp","a":{"style":"op-and","op":"and"},"k":[{"t":"Constant","a":{"bool":"false"},"k":[]},{"t":"Constant","a":{"bool":"false"},"k":[]}]},{"t":"BoolOp","a":{"style":"op-or","op":"or"},"k":[{"t":"Constant","a":{"bool":"false"},"k":[]},{"t":"Constant","a":{"bool":"false"},"k":[]}]},{"t":"Not","a":{"style":"op-not"},"k":[{"t":"Constant","a":{"bool":"false"},"k":[]}]},{"t":"Comparison","a":{"style":"op-eq","op":"="},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"Comparison","a":{"style":"op-lt","op":"l"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"Comparison","a":{"style":"op-lte","op":"le"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"Comparison","a":{"style":"op-gt","op":"g"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"Comparison","a":{"style":"op-gte","op":"ge"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"MathFunction","a":{"style":"op-math","function":"abs"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BinaryOp","a":{"style":"op-atan-2","op":"atan2"},"k":[{"t":"Constant","a":{"text":"y"},"k":[]},{"t":"Constant","a":{"text":"x"},"k":[]}]},{"t":"Conditional","a":{"style":"conditional"},"k":[{"t":"Constant","a":{"bool":"false"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"StringOp","a":{"op":"join","style":"join"},"k":[{"t":"Constant","a":{"text":"alpha"},"k":[]},{"t":"Constant","a":{"text":"bravo"},"k":[]}]},{"t":"StringOp","a":{"op":"length","style":"length"},"k":[{"t":"Constant","a":{"text":"alpha"},"k":[]}]},{"t":"StringOp","a":{"op":"letter","style":"letter"},"k":[{"t":"Constant","a":{"number":"1"},"k":[]},{"t":"Constant","a":{"text":"alpha"},"k":[]}]},{"t":"StringOp","a":{"op":"substring","style":"substring"},"k":[{"t":"Constant","a":{"number":"2"},"k":[]},{"t":"Constant","a":{"number":"4"},"k":[]},{"t":"Constant","a":{"text":"alpha"},"k":[]}]},{"t":"StringOp","a":{"op":"contains","style":"contains"},"k":[{"t":"Constant","a":{"text":"alpha"},"k":[]},{"t":"Constant","a":{"text":"a"},"k":[]}]},{"t":"StringOp","a":{"op":"format","style":"format"},"k":[{"t":"Constant","a":{"text":"{0:n1}"},"k":[]},{"t":"Constant","a":{"text":"10000.99"},"k":[]}]},{"t":"StringOp","a":{"op":"friendly","style":"friendly","subOp":"distance"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"Vector","a":{"style":"vec"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"VectorOp","a":{"style":"vec-op-1","op":"length"},"k":[{"t":"Constant","a":{"vector":"0,0,0"},"k":[]}]},{"t":"VectorOp","a":{"style":"vec-op-2","op":"dot"},"k":[{"t":"Constant","a":{"vector":"0,0,0"},"k":[]},{"t":"Constant","a":{"vector":"0,0,0"},"k":[]}]},{"t":"Constant","a":{"style":"true","bool":"true"},"k":[]},{"t":"Constant","a":{"style":"false","bool":"false"},"k":[]}]},{"n":"Craft Instructions","i":[{"t":"ActivateStage","a":{"style":"activate-stage"},"k":[]},{"t":"SetInput","a":{"style":"set-input","input":"throttle"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"SetTargetHeading","a":{"style":"set-heading"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"SetTarget","a":{"style":"set-target"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]}]},{"t":"SetActivationGroup","a":{"style":"set-ag"},"k":[{"t":"Constant","a":{"number":"1"},"k":[]},{"t":"Constant","a":{"bool":"true"},"k":[]}]},{"t":"LockNavSphere","a":{"style":"lock-nav-sphere"},"k":[]},{"t":"LockNavSphere","a":{"style":"lock-nav-sphere-vector","indicatorType":"Vector"},"k":[{"t":"Constant","a":{"vector":"0,0,1"},"k":[]}]},{"t":"SetTimeMode","a":{"style":"set-time-mode","mode":"Normal"},"k":[]},{"t":"SetCameraProperty","a":{"style":"set-camera","property":"zoom"},"k":[{"t":"Constant","a":{"number":"100"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-part","property":"Part.SetActivated"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"SwitchCraft","a":{"style":"switch-craft"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"play-beep","property":"Sound.Beep"},"k":[{"t":"Constant","a":{"number":"1000"},"k":[]},{"t":"Constant","a":{"number":"1"},"k":[]},{"t":"Constant","a":{"number":"2"},"k":[]}]},{"t":"CraftProperty","a":{"style":"note-frequency","property":"Sound.Frequency"},"k":[{"t":"Constant","a":{"text":"C#"},"k":[]},{"t":"Constant","a":{"number":"3"},"k":[]}]}]},{"n":"Craft Information","i":[{"t":"CraftProperty","a":{"style":"prop-altitude","property":"Altitude.AGL"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-orbit","property":"Orbit.Apoapsis"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-atmosphere","property":"Atmosphere.AirDensity"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-performance","property":"Performance.Mass"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-fuel","property":"Fuel.FuelInStage"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-nav","property":"Nav.Position"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-velocity","property":"Vel.OrbitVelocity"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-input","property":"Input.Throttle"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-misc","property":"Misc.Grounded"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-time","property":"Time.TimeSinceLaunch"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-name","property":"Name.Craft"},"k":[]},{"t":"ActivationGroup","a":{"style":"activation-group"},"k":[{"t":"Constant","a":{"number":"1"},"k":[]}]},{"t":"Planet","a":{"style":"planet-to-lat-long-agl","op":"toLatLongAgl"},"k":[{"t":"Constant","a":{"vector":"0,0,0"},"k":[]}]},{"t":"Planet","a":{"style":"planet-to-position","op":"toPosition"},"k":[{"t":"Constant","a":{"vector":"0,0,0"},"k":[]}]},{"t":"CraftProperty","a":{"style":"terrain-query","property":"Terrain.Height"},"k":[{"t":"Constant","a":{"vector":"0,0,0"},"k":[]}]},{"t":"Planet","a":{"style":"planet","op":"radius"},"k":[{"t":"Constant","a":{"text":"Droo"},"k":[]}]},{"t":"CraftProperty","a":{"style":"part","property":"Part.Activated"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"CraftProperty","a":{"style":"part-id","property":"Part.NameToID"},"k":[{"t":"Constant","a":{"text":"PartName"},"k":[]}]},{"t":"CraftProperty","a":{"style":"part-transform","property":"Part.LocalToPci"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"vector":"0,0,0"},"k":[]}]},{"t":"CraftProperty","a":{"style":"craft","property":"Craft.Position"},"k":[{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"CraftProperty","a":{"style":"craft-id","property":"Craft.NameToID"},"k":[{"t":"Constant","a":{"text":"CraftName"},"k":[]}]},{"t":"Constant","a":{"style":"true","bool":"true"},"k":[]},{"t":"Constant","a":{"style":"false","bool":"false"},"k":[]}]},{"n":"Events","i":[{"t":"Event","a":{"style":"flight-start","event":"FlightStart"},"k":[]},{"t":"Event","a":{"style":"part-collision","event":"PartCollision"},"k":[]},{"t":"Event","a":{"style":"part-explode","event":"PartExplode"},"k":[]},{"t":"Event","a":{"style":"craft-docked","event":"Docked"},"k":[]},{"t":"Event","a":{"style":"change-soi","event":"ChangeSoi"},"k":[]},{"t":"Event","a":{"style":"receive-msg","event":"ReceiveMessage"},"k":[{"t":"Constant","a":{"text":"message","canReplace":"false"},"k":[]}]},{"t":"BroadcastMessage","a":{"style":"broadcast-msg"},"k":[{"t":"Constant","a":{"text":"message"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"BroadcastMessage","a":{"style":"broadcast-msg-craft","local":"false"},"k":[{"t":"Constant","a":{"text":"message"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]}]},{"n":"Variables","i":[{"t":"SetVariable","a":{"style":"set-variable"},"k":[{"t":"Constant","a":{"text":""},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"ChangeVariable","a":{"style":"change-variable"},"k":[{"t":"Constant","a":{"text":""},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"UserInput","a":{"style":"user-input"},"k":[{"t":"Constant","a":{"text":""},"k":[]},{"t":"Constant","a":{"text":"Message Text..."},"k":[]}]}]},{"n":"Lists","i":[{"t":"SetList","a":{"op":"add","style":"list-add"},"k":[{"t":"Constant","a":{"text":""},"k":[]},{"t":"Constant","a":{"text":"item"},"k":[]}]},{"t":"SetList","a":{"op":"insert","style":"list-insert"},"k":[{"t":"Constant","a":{"text":""},"k":[]},{"t":"Constant","a":{"text":"item"},"k":[]},{"t":"Constant","a":{"number":"1"},"k":[]}]},{"t":"SetList","a":{"op":"remove","style":"list-remove"},"k":[{"t":"Constant","a":{"text":""},"k":[]},{"t":"Constant","a":{"number":"1"},"k":[]}]},{"t":"SetList","a":{"op":"set","style":"list-set"},"k":[{"t":"Constant","a":{"text":""},"k":[]},{"t":"Constant","a":{"text":"item"},"k":[]},{"t":"Constant","a":{"number":"1"},"k":[]}]},{"t":"SetList","a":{"op":"clear","style":"list-clear"},"k":[{"t":"Constant","a":{"text":""},"k":[]}]},{"t":"SetList","a":{"op":"sort","style":"list-sort"},"k":[{"t":"Constant","a":{"text":""},"k":[]}]},{"t":"SetList","a":{"op":"reverse","style":"list-reverse"},"k":[{"t":"Constant","a":{"text":""},"k":[]}]},{"t":"SetVariable","a":{"style":"list-init"},"k":[{"t":"Constant","a":{"text":""},"k":[]},{"t":"ListOp","a":{"op":"create","style":"list-create"},"k":[{"t":"Constant","a":{"text":"a,b,c"},"k":[]}]}]},{"t":"ListOp","a":{"op":"get","style":"list-get"},"k":[{"t":"Constant","a":{"text":""},"k":[]},{"t":"Constant","a":{"number":"1"},"k":[]}]},{"t":"ListOp","a":{"op":"length","style":"list-length"},"k":[{"t":"Constant","a":{"text":""},"k":[]}]},{"t":"ListOp","a":{"op":"index","style":"list-index"},"k":[{"t":"Constant","a":{"text":""},"k":[]},{"t":"Constant","a":{"text":"item"},"k":[]}]}]},{"n":"Custom Expressions","i":[]},{"n":"Custom Instructions","i":[]},{"n":"Multi-function Display","i":[{"t":"SetCraftProperty","a":{"style":"create-mfd-widget","property":"Mfd.Create.Label"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-widget","property":"Mfd.SetPosition"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"text":""},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-anchor","property":"Mfd.Widget.SetAnchor.Center"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-label","property":"Mfd.Label.SetText"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"text":""},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-alignment","property":"Mfd.Label.SetAlignment.Center"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-texture-initialize","property":"Mfd.Texture.Initialize"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]},{"t":"Constant","a":{"number":"0"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-texture-setpixel","property":"Mfd.Texture.SetPixel"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"number":"1"},"k":[]},{"t":"Constant","a":{"number":"1"},"k":[]},{"t":"Constant","a":{"vector":"0,0,0"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-sprite","property":"Mfd.Sprite.SetFillAmount"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"text":""},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-gauge","property":"Mfd.Gauge.SetValue"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"text":""},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-line","property":"Mfd.Line.SetThickness"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"number":"0.5"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-line-points","property":"Mfd.Line.SetLinePoints"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"text":"0,0"},"k":[]},{"t":"Constant","a":{"text":"1,1"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-navball","property":"Mfd.Navball.TopColor"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"text":""},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-map","property":"Mfd.Map.NorthUp"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"style":"true","bool":"true"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-order-front","property":"Mfd.Order.SendToFront"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"text":"target"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-order-back","property":"Mfd.Order.SendToBack"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"text":"target"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"set-mfd-event","property":"Mfd.Event.SetPointerClick"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"text":"message"},"k":[]},{"t":"Constant","a":{"text":"data"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"destroy-mfd-widget","property":"Mfd.Destroy"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]}]},{"t":"SetCraftProperty","a":{"style":"destroy-all-mfd-widgets","property":"Mfd.Destroy.All"},"k":[]},{"t":"CraftProperty","a":{"style":"prop-mfd-widget","property":"Mfd.Position"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]}]},{"t":"CraftProperty","a":{"style":"prop-mfd-label","property":"Mfd.Label.Text"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]}]},{"t":"CraftProperty","a":{"style":"prop-mfd-sprite","property":"Mfd.Sprite.FillAmount"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]}]},{"t":"CraftProperty","a":{"style":"prop-mfd-gauge","property":"Mfd.Gauge.Value"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]}]},{"t":"CraftProperty","a":{"style":"prop-mfd-texture-getpixel","property":"Mfd.Texture.GetPixel"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"number":"1"},"k":[]},{"t":"Constant","a":{"number":"1"},"k":[]}]},{"t":"CraftProperty","a":{"style":"prop-mfd-pos","property":"Mfd.LocaltoDisplay"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]},{"t":"Constant","a":{"text":"0,0"},"k":[]}]},{"t":"CraftProperty","a":{"style":"prop-mfd-event","property":"Mfd.Event.PointerClick"},"k":[{"t":"Constant","a":{"text":"name"},"k":[]}]},{"t":"VectorOp","a":{"style":"vec-op-color","op":"hex"},"k":[{"t":"Constant","a":{"text":"#FF0000"},"k":[]}]}]}]}</script>
+<script>
+/* Block catalogue, colours and tooltips come from the game's Vizzy toolbox definition as published in
+   sflanker/sr2-vizzyplusplus (Unlicense). The editor itself is an original implementation. */
+const T=JSON.parse(document.getElementById("data").textContent),$=id=>document.getElementById(id);
+const INS=new Set("WaitSeconds WaitUntil Repeat While For If ElseIf DisplayMessage LogMessage Break Comment SetCraftProperty SetList SetVariable ChangeVariable UserInput ActivateStage SetInput SetTargetHeading SetTarget SetActivationGroup SetTimeMode SetCameraProperty SwitchCraft BroadcastMessage LockNavSphere CallCustomInstruction Event CustomInstruction".split(" "));
+const BLK=new Set(["For","While","Repeat","If","ElseIf"]);
+const ICON=["⏱","±","🚀","ℹ","⚑","𝑥","☰","ƒ","⚙","▣"];
+let P,und=[],red=[],uid=1,ox=60,oy=60,openCat=null,selfile=null,craft=null;
+const NEW=()=>({name:"New Program",vars:[],stacks:[],exprs:[]});
+P=NEW();
+const col=id=>T.col[id]||id||"#373737";
+const sty=n=>T.st[n.a.style]||{c:"Instruction"};
+const isIns=n=>INS.has(n.t),isBlk=n=>BLK.has(n.t);
+const mk=(t,a,s,i)=>({t,a:a||{},s:s||[],i,u:uid++});
+function fromTpl(x){const n=mk(x.t,{...x.a},x.k.map(fromTpl));if(isBlk(n))n.i=[];
+  const f=(sty(n).f||""),m=[...f.matchAll(/\((\d+)[:)]|\{(\d+)\}/g)].map(r=>+(r[1]??r[2])),cnt=m.length?Math.max(...m)+1:0,hint=idx=>{const r=new RegExp("\\("+idx+":(\\w+)\\)").exec(f);return r?r[1]:""};
+  while(n.s.length<cnt){const i=n.s.length;n.s.push(mk("Constant",new RegExp("\\{"+i+"\\}").test(f)?{bool:"false"}:hint(i)?{number:"0"}:{text:""}));}
+  return n;}
+const defaults=(n)=>n;
+
+/* ---------- format ---------- */
+function parts(n){
+  let f=n.a.format||n.a.callFormat||(n.t==="CallCustomInstruction"||n.t==="CallCustomExpression"?callFmt(n):sty(n).f)||"";
+  if(n.t==="CustomExpression"||n.t==="CustomInstruction")f=n.a.format;
+  if(n.t.startsWith("Call")&&n.a.call)f=callFmt(n);
+  return [...f.matchAll(/\((\d+)(?::\w+)?\)|\{(\d+)\}|\|([^|]+)\||([^(){}|]+)/g)].map(m=>m[1]!=null?{s:+m[1]}:m[2]!=null?{s:+m[2]}:m[3]!=null?{p:m[3]}:{x:m[4]});}
+function callFmt(n){const d=findDef(n.a.call);return d?d.a.callFormat:n.a.call+" "+n.s.map((_,i)=>"("+i+")").join(" ");}
+function findDef(name){let r=null;const w=n=>{if((n.t==="CustomInstruction"||n.t==="CustomExpression")&&n.a.name===name)r=n;n.s.forEach(w);(n.i||[]).forEach(w)};P.stacks.forEach(s=>s.i.forEach(w));P.exprs.forEach(e=>w(e.n));return r;}
+function allDefs(t){const r=[];const w=n=>{if(n.t===t)r.push(n);n.s.forEach(w);(n.i||[]).forEach(w)};P.stacks.forEach(s=>s.i.forEach(w));P.exprs.forEach(e=>w(e.n));return r;}
+const VARSLOT=n=>n.a.style&&/^(set-variable|change-variable|user-input|list-)/.test(n.a.style);
+
+/* ---------- render ---------- */
+const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e;};
+function pill(n,txt,color){const p=el("span","pill",txt);p.style.background=color;p.dataset.u=n.u;return p;}
+function render(n,box){ // returns element for node n
+  if(n.t==="Constant")return konst(n);
+  if(n.t==="Variable")return varNode(n);
+  const s=sty(n),ins=isIns(n),e=el("div","blk "+(n.t==="Event"?"ev ":"")+(ins?"ins":"ex"));
+  e.dataset.u=n.u;const bg=col(n.t.startsWith("Call")?"CallCustom":s.c);e.style.background=n.t.startsWith("Call")?col("CallCustom"):bg;
+  if(n.t.startsWith("Call"))e.style.color="#fff";
+  if(s.x)e.style.color=col(s.x);
+  e.title=s.t||"";
+  const eventName={FlightStart:"when flight starts",ReceiveMessage:"on message"}[n.a.event];
+  const pr=parts(n);let any=false;
+  for(const x of pr){
+    if(x.x!=null){const t=el("span","tx",x.x.replace(/^\s+|\s+$/g,m=>m?" ":""));e.appendChild(t);}
+    else if(x.p!=null){const c=pill(n,x.p,"#0005");c.dataset.p=x.p;c.dataset.local="1";e.appendChild(c);}
+    else{e.appendChild(slot(n,x.s));}
+  }
+  if(s.d||n.t==="StringOp"&&/join|format/.test(n.a.op||"")&&s.d){/* dynamic */}
+  if(s.d){const m=el("button","pm","−"),p=el("button","pm","+");p.dataset.act="add";m.dataset.act="del";p.dataset.u=m.dataset.u=n.u;
+    for(let i=0;i<n.s.length;i++)e.appendChild(slot(n,i));e.append(m,p);}
+  if(n.t==="Event"&&n.a.event==="ReceiveMessage"){}
+  if(n.t==="CustomInstruction"||n.t==="CustomExpression"){e.style.background=col("CustomInstruction");}
+  if(isBlk(n)){const c=el("div","cblk");e.classList.add("head");e.style.borderRadius="6px 6px 0 0";e.style.marginBottom="0";c.dataset.u=n.u;
+    const b=el("div","body"),bar=el("div","bar"),inn=el("div","inner");bar.style.background=bg;inn.dataset.u=n.u;inn.dataset.zone="1";
+    n.i.forEach(x=>inn.appendChild(render(x)));b.append(bar,inn);const ft=el("div","foot");ft.style.background=bg;c.append(e,b,ft);return c;}
+  return e;
+}
+function konst(n){
+  const s=sty(n),isB=n.a.bool!==undefined,w=el("span","blk ex");w.style.background="#262626";w.dataset.u=n.u;w.style.padding="0";w.style.cursor="default";
+  let i;
+  if(isB){i=el("select","k b");["true","false"].forEach(v=>{const o=el("option",null,v);if(n.a.bool===v)o.selected=true;i.appendChild(o);});i.onchange=()=>{n.a.bool=i.value;};}
+  else{i=el("input","k");i.value=n.a.number!==undefined?n.a.number:n.a.text||"";i.size=Math.max(3,i.value.length+1);
+    i.oninput=()=>{i.size=Math.max(3,i.value.length+1);};
+    i.onchange=()=>{const v=i.value;delete n.a.number;delete n.a.text;if(v!==""&&!isNaN(v)&&n.a.keepText!==1)n.a.number=v;else n.a.text=v;snap();};
+    if(s.x)i.style.color=col(s.x);
+    i.placeholder=" ";}
+  i.onpointerdown=e=>e.stopPropagation();w.appendChild(i);return w;}
+function varNode(n){const loc=n.a.local==="true";const p=pill(n,n.a.variableName||"?",loc?col("LocalVariable"):col("GlobalVariable"));p.className+=" blk ex";p.style.color="#fff";p.style.margin="0";p.dataset.u=n.u;return p;}
+function slot(n,i){
+  const sl=el("span","slot");sl.dataset.u=n.u;sl.dataset.i=i;const c=n.s[i];
+  if(!c){return sl;}
+  if(c.t==="Constant"&&VARSLOT(n)&&i===0){
+    const list=/^list-/.test(n.a.style)||n.a.style==="list-init";
+    const sel=el("select","k b");sel.appendChild(el("option",null,"select…"));
+    P.vars.filter(v=>list?v.list:!v.list).forEach(v=>{const o=el("option",null,v.name);sel.appendChild(o);});
+    sel.onpointerdown=e=>e.stopPropagation();
+    sel.onchange=()=>{const v=P.vars.find(x=>x.name===sel.value);if(v){n.s[0]=mk("Variable",{list:String(!!v.list),local:"false",variableName:v.name});snap();}};
+    sl.appendChild(sel);return sl;}
+  sl.appendChild(render(c));return sl;}
+function stackEl(st){const d=el("div","stack");d.style.left=st.x+"px";d.style.top=st.y+"px";d.dataset.s=st.id;st.i.forEach(n=>d.appendChild(render(n)));return d;}
+function draw(){
+  const w=$("world");w.innerHTML="";w.style.transform="translate("+ox+"px,"+oy+"px)";
+  P.stacks.forEach(s=>w.appendChild(stackEl(s)));
+  P.exprs.forEach(e=>{const d=el("div","stack");d.style.left=e.x+"px";d.style.top=e.y+"px";d.dataset.e=e.id;d.appendChild(render(e.n));w.appendChild(d);});
+  if(openCat!==null)flyBody();
+}
+/* ---------- undo ---------- */
+const ser=()=>JSON.stringify(P);
+function snap(){und.push(ser());if(und.length>100)und.shift();red=[];draw();}
+function undo(){if(!und.length)return;const cur=ser();red.push(cur);P=JSON.parse(und.pop());sync();draw();}
+function redo(){if(!red.length)return;und.push(ser());P=JSON.parse(red.pop());sync();draw();}
+function sync(){const m=n=>{if(n.u>=uid)uid=n.u+1;n.s.forEach(m);(n.i||[]).forEach(m)};P.stacks.forEach(s=>s.i.forEach(m));P.exprs.forEach(e=>m(e.n));}
+function msg(t){const m=$("msg");m.textContent=t;m.style.display="block";clearTimeout(msg.t);msg.t=setTimeout(()=>m.style.display="none",2600);}
+
+/* ---------- model helpers ---------- */
+function locate(u){ // find node u and its container
+  let r=null;
+  const walk=(n,par,list,idx,slotI)=>{if(r)return;if(n.u===u){r={n,par,list,idx,slotI};return;}n.s.forEach((c,i)=>walk(c,n,null,i,i));(n.i||[]).forEach((c,i)=>walk(c,n,n.i,i));};
+  P.stacks.forEach(s=>s.i.forEach((n,i)=>walk(n,s,s.i,i)));P.exprs.forEach(e=>walk(e.n,e,null,0,-1));return r;}
+function defConst(n,i){const f=sty(n).f||"";return mk("Constant",new RegExp("\\{"+i+"\\}").test(f)?{bool:"false"}:{text:""});}
+/* take node out; returns array of nodes being dragged */
+function lift(u){
+  const L=locate(u);if(!L)return null;let out;
+  if(L.slotI>=0&&L.par.t){out=[L.n];L.par.s[L.slotI]=defConst(L.par,L.slotI);}
+  else if(L.slotI===-1){out=[L.n];P.exprs=P.exprs.filter(e=>e!==L.par);}
+  else if(L.list){out=L.list.splice(L.idx);if(L.par&&L.par.i===undefined&&!L.par.i&&L.list.length===0&&L.par.i!==L.list){P.stacks=P.stacks.filter(s=>s.i.length);}}
+  P.stacks=P.stacks.filter(s=>s.i.length);return out;}
+function dropAt(group,target,x,y){
+  const g0=group[0];
+  if(!isIns(g0)){ // expression
+    const sl=target&&target.closest(".slot");
+    if(sl){const L=locate(+sl.dataset.u);if(L){L.n.s[+sl.dataset.i]=g0;return;}}
+    P.exprs.push({id:uid++,x,y,n:g0});return;}
+  if(g0.t!=="Event"&&g0.t!=="CustomInstruction"&&target){
+    const inner=target.closest(".inner"),b=target.closest(".blk.ins,.cblk>.head");
+    if(b&&b.dataset.u){const L=locate(+b.dataset.u);if(L&&L.list){const r=b.getBoundingClientRect(),after=drop.y>r.top+r.height/2||(L.n.t==="Event"||L.n.t==="CustomInstruction");
+      const idx=L.idx+(after?1:0);
+      if(isBlk(L.n)&&drop.y>r.top+r.height/2&&b.classList.contains("head")){L.n.i.unshift(...group);return;}
+      L.list.splice(idx,0,...group);return;}}
+    if(inner){const L=locate(+inner.dataset.u);if(L){L.n.i.unshift(...group);return;}}}
+  P.stacks.push({id:uid++,x,y,i:group});}
+let drop={x:0,y:0};
+
+/* ---------- drag ---------- */
+let drag=null;
+function startDrag(e,node,fromTool,src){
+  const g=el("div");$("ghost").innerHTML="";
+  drag={node,fromTool,x0:e.clientX,y0:e.clientY,go:false,src,id:e.pointerId};
+  window.addEventListener("pointermove",onMove);window.addEventListener("pointerup",onUp,{once:true});window.addEventListener("pointercancel",onUp,{once:true});
+}
+function onMove(e){
+  if(!drag)return;
+  if(!drag.go){if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<6)return;
+    drag.go=true;let group;
+    if(drag.fromTool){group=[JSON.parse(JSON.stringify(drag.node))];const rs=n=>{n.u=uid++;n.s.forEach(rs);(n.i||[]).forEach(rs)};rs(group[0]);}
+    else{const r=drag.src.getBoundingClientRect();drag.ox=e.clientX-r.left;drag.oy=e.clientY-r.top;group=lift(drag.node);if(!group)return drag=null;}
+    if(drag.fromTool){drag.ox=20;drag.oy=14;closeFly();}
+    drag.group=group;const gh=$("ghost");gh.innerHTML="";const w=el("div");group.forEach(n=>w.appendChild(render(n)));gh.appendChild(w);
+    $("trash").style.display="flex";if(!drag.fromTool)draw();}
+  const gh=$("ghost");gh.style.transform="translate("+(e.clientX-drag.ox)+"px,"+(e.clientY-drag.oy)+"px)";
+  gh.style.display="none";const t=document.elementFromPoint(e.clientX,e.clientY);gh.style.display="";
+  const tr=$("trash").getBoundingClientRect();drag.trash=e.clientX>tr.left&&e.clientX<tr.right&&e.clientY>tr.top&&e.clientY<tr.bottom;
+  $("trash").classList.toggle("hot",drag.trash);drag.t=t;drag.px=e.clientX;drag.py=e.clientY;
+  document.querySelectorAll(".hl").forEach(x=>x.classList.remove("hl"));
+  const hl=$("hl");hl.style.display="none";
+  if(t&&!drag.trash){if(!isIns(drag.group[0])){const s=t.closest(".slot");if(s)s.classList.add("hl");}
+    else{const b=t.closest(".blk.ins,.cblk>.head");if(b&&drag.group[0].t!=="Event"){const r=b.getBoundingClientRect(),after=e.clientY>r.top+r.height/2;hl.style.cssText="display:block;left:"+r.left+"px;width:"+r.width+"px;top:"+((after?r.bottom:r.top)-2)+"px";}}}
+}
+function onUp(e){
+  window.removeEventListener("pointermove",onMove);
+  const d=drag;drag=null;$("ghost").innerHTML="";$("trash").style.display="none";$("hl").style.display="none";document.querySelectorAll(".hl").forEach(x=>x.classList.remove("hl"));
+  if(!d||!d.go)return;
+  if(d.trash){snap();msg("Deleted");return;}
+  const cr=$("cv").getBoundingClientRect();drop={x:e.clientX,y:e.clientY};
+  dropAt(d.group,d.t,e.clientX-d.ox-cr.left-ox,e.clientY-d.oy-cr.top-oy);snap();
+}
+$("world").addEventListener("pointerdown",e=>{
+  if(e.target.closest("input,select"))return;
+  const b=e.target.closest("[data-u]");if(!b)return;
+  if(e.target.dataset.act)return;
+  let u=+b.dataset.u;
+  if(b.dataset.local){startDrag(e,mk("Variable",{list:"false",local:"true",variableName:b.dataset.p}),true);return;}
+  const blk=b.closest(".blk,.pill");if(!blk||(blk.classList.contains("pill")&&!blk.classList.contains("ex")))return;
+  e.stopPropagation();e.preventDefault();startDrag(e,u,false,(b.closest(".cblk")||b));
+});
+$("world").addEventListener("click",e=>{const a=e.target.dataset.act;if(!a)return;const L=locate(+e.target.dataset.u);if(!L)return;
+  if(a==="add")L.n.s.push(mk("Constant",{text:""}));else if(L.n.s.length>2)L.n.s.pop();snap();});
+/* pan */
+$("cv").addEventListener("pointerdown",e=>{if(e.target!==$("cv")&&e.target!==$("world"))return;closeFly();
+  const sx=e.clientX-ox,sy=e.clientY-oy;const mv=ev=>{ox=ev.clientX-sx;oy=ev.clientY-sy;$("world").style.transform="translate("+ox+"px,"+oy+"px)";};
+  const up=()=>{window.removeEventListener("pointermove",mv);};window.addEventListener("pointermove",mv);window.addEventListener("pointerup",up,{once:true});});
+
+/* ---------- side bar / flyouts ---------- */
+const CATS=T.cats.map((c,i)=>({n:c.n,i:c.i,ic:ICON[i]||"▪"}));
+function bar(){$("bar").innerHTML="";CATS.forEach((c,i)=>{const b=el("button","cat"+(openCat===i?" on":""),c.ic);b.title=c.n;b.onclick=()=>open(i);$("bar").appendChild(b);});
+  $("bar").appendChild(el("div","sep"));const m=el("button","cat"+(openCat==="menu"?" on":""),"☰");m.title="Menu";m.style.fontSize="22px";m.onclick=()=>open("menu");$("bar").appendChild(m);}
+function open(i){openCat=openCat===i?null:i;bar();if(openCat===null)return closeFly();$("fly").hidden=false;flyBody();}
+function closeFly(){openCat=null;$("fly").hidden=true;bar();}
+function flyBody(){
+  const f=$("fly");f.innerHTML="";
+  const name=openCat==="menu"?"MENU":CATS[openCat].n.toUpperCase();
+  const h=el("div","fh");h.append(el("span",null,name));const x=el("b",null,"✕");x.onclick=closeFly;h.appendChild(x);f.appendChild(h);
+  const b=el("div","fb");f.appendChild(b);
+  if(openCat==="menu")return menu(b);
+  const c=CATS[openCat];
+  c.i.forEach(t=>{const n=fromTpl(t);const w=el("div");w.style.maxWidth="100%";w.appendChild(render(n));w.firstChild.onpointerdown=e=>{if(e.target.closest("input,select"))return;e.preventDefault();startDrag(e,n,true);};b.appendChild(w);});
+  if(c.n==="Variables"||c.n==="Lists"){
+    const isL=c.n==="Lists";
+    P.vars.filter(v=>!!v.list===isL).forEach(v=>{const r=el("div");r.style.cssText="display:flex;gap:6px;align-items:center";const n=mk("Variable",{list:String(isL),local:"false",variableName:v.name});const p=render(n);p.onpointerdown=e=>{e.preventDefault();startDrag(e,n,true);};
+      const ed=el("button","pm","✎");ed.onclick=()=>editVar(v);r.append(p,ed);b.appendChild(r);});
+    const cb=el("button","btn pri",isL?"CREATE LIST":"CREATE VARIABLE");cb.style.marginTop="auto";cb.onclick=()=>ask("New "+(isL?"list":"variable")+" name","",nm=>{nm=nm.trim();if(!nm)return;if(P.vars.some(v=>v.name===nm))return msg("That name is taken");P.vars.push({name:nm,list:isL});snap();});b.appendChild(cb);}
+  if(c.n==="Custom Expressions"||c.n==="Custom Instructions"){
+    const ex=c.n==="Custom Expressions";
+    allDefs(ex?"CustomExpression":"CustomInstruction").forEach(d=>{const n=mk(ex?"CallCustomExpression":"CallCustomInstruction",{call:d.a.name,style:ex?"call-custom-expression":"call-custom-instruction"},(d.a.callFormat.match(/\(\d+\)/g)||[]).map(()=>mk("Constant",{text:""})));
+      const w=render(n);w.onpointerdown=e=>{if(e.target.closest("input,select"))return;e.preventDefault();startDrag(e,n,true);};b.appendChild(w);});
+    const cb=el("button","btn pri","CREATE");cb.style.marginTop="auto";cb.onclick=()=>createCustom(ex);b.appendChild(cb);}
+}
+function createCustom(ex){
+  ask("Name of the custom "+(ex?"expression":"instruction")+" (add parameters after a colon, e.g. Add:a,b)","",v=>{
+    const [nm,ps]=v.split(":");const name=nm.trim();if(!name)return;const pr=(ps||"").split(",").map(s=>s.trim()).filter(Boolean);
+    const fmt=name+pr.map(p=>" |"+p+"|").join("")+(ex?" return (0)":""),cf=name+pr.map((_,i)=>" ("+i+")").join("");
+    const n=mk(ex?"CustomExpression":"CustomInstruction",{name,format:fmt,callFormat:cf,style:ex?"custom-expression":"custom-instruction"},ex?[mk("Constant",{number:"0"})]:[],undefined);
+    const cr=$("cv").getBoundingClientRect();const x=140-ox,y=120-oy;
+    if(ex)P.exprs.push({id:uid++,x,y,n});else P.stacks.push({id:uid++,x,y,i:[n]});closeFly();snap();});}
+function editVar(v){ask("Rename variable (empty to delete)",v.name,nm=>{nm=nm.trim();const old=v.name;
+  const w=n=>{if(n.t==="Variable"&&n.a.variableName===old&&n.a.local!=="true"){if(nm)n.a.variableName=nm;else n.a.variableName="";}n.s.forEach(w);(n.i||[]).forEach(w)};
+  P.stacks.forEach(s=>s.i.forEach(w));P.exprs.forEach(e=>w(e.n));if(nm)v.name=nm;else P.vars=P.vars.filter(x=>x!==v);snap();});}
+function menu(b){
+  const B=(t,fn,c,tip)=>{const x=el("button","btn "+(c||""),t);x.onclick=fn;if(tip)x.title=tip;b.appendChild(x);return x;};
+  B("SAVE TO CRAFT",saveCraft,"pri","Replace this program inside the loaded craft file and download it.");
+  B("DISCARD AND EXIT",()=>{if(confirm("Discard changes and return to the tools page?"))location.href=homeUrl();},"","Discard the changes you've made.");
+  b.appendChild(el("div","hr"));
+  B("NEW PROGRAM",()=>ask("Name of the new program","New Program",n=>{und.push(ser());P=NEW();P.name=n||"New Program";P.stacks.push({id:uid++,x:40,y:60,i:[fromTpl({t:"Event",a:{style:"flight-start",event:"FlightStart"},k:[]})]});craft=null;snap();closeFly();}),"","Start over with a new program.");
+  B("SAVE PROGRAM",()=>download(P.name.replace(/[^\w\- ]+/g,"")+".xml",toXml()),"","Download this program as an XML file.");
+  B("LOAD PROGRAM",()=>{selfile="load";$("file").click();},"","Load a program or a craft file.");
+  b.appendChild(el("div","hr"));
+  B("IMPORT PROGRAM",()=>{selfile="import";$("file").click();},"","Add another program's blocks into this one.");
+  b.appendChild(el("div","hr"));
+  const r=el("div","row2");const u=el("button","btn","UNDO"),rd=el("button","btn","REDO");u.onclick=undo;rd.onclick=redo;r.append(u,rd);b.appendChild(r);
+  b.appendChild(el("div","hr"));
+  const g=el("div","tog");g.append(el("span",null,"Grid"));const cb=el("input");cb.type="checkbox";cb.checked=!$("cv").classList.contains("nogrid");cb.onchange=()=>$("cv").classList.toggle("nogrid",!cb.checked);g.appendChild(cb);b.appendChild(g);
+  b.appendChild(el("div","hr"));const nm=el("div","tog");nm.append(el("span",null,"Program name"));b.appendChild(nm);
+  const ni=el("input");ni.value=P.name;ni.style.cssText="width:100%;background:#171b1f;border:1px solid var(--bd);color:#fff;padding:6px;border-radius:3px";ni.onchange=()=>{P.name=ni.value||"New Program";snap();};b.appendChild(ni);
+  const c=el("div","credit");c.innerHTML='Block definitions from the game’s Vizzy toolbox as published in <a href="https://github.com/sflanker/sr2-vizzyplusplus" target="_blank" rel="noopener">sr2-vizzyplusplus</a>.';b.appendChild(c);
+}
+const homeUrl=()=>location.protocol==="file:"?"../index.html":(/\.github\.io$/i.test(location.hostname)?location.origin+"/"+location.pathname.split("/")[1]+"/":"https://anda2012.github.io/Juno_New_Origins_Tools/");
+
+/* ---------- XML in / out ---------- */
+const parseNode=e=>{const a={};for(const x of e.attributes)if(x.name!=="id"&&x.name!=="pos")a[x.name]=x.value;const n=mk(e.tagName,a);
+  for(const c of e.children){if(c.tagName==="Instructions")n.i=[...c.children].map(parseNode);else n.s.push(parseNode(c));}if(isBlk(n)&&!n.i)n.i=[];return n;};
+const pp=s=>{const [x,y]=(s||"0,0").split(",").map(parseFloat);return{x:x||0,y:y||0};};
+function fromProgram(pe){
+  const Q=NEW();Q.name=pe.getAttribute("name")||"Program";
+  [...(pe.querySelector(":scope > Variables")?.children||[])].forEach(v=>Q.vars.push({name:v.getAttribute("name"),list:!!v.querySelector("Items"),raw:Object.fromEntries([...v.attributes].map(a=>[a.name,a.value])),items:v.querySelector("Items")?.outerHTML}));
+  pe.querySelectorAll(":scope > Instructions").forEach((ie,k)=>{const l=[...ie.children].map(parseNode);if(l.length){const p=pp(ie.children[0].getAttribute("pos"));Q.stacks.push({id:uid++,x:p.x,y:p.y,i:l});}});
+  pe.querySelectorAll(":scope > Expressions > *").forEach(c=>{const p=pp(c.getAttribute("pos"));Q.exprs.push({id:uid++,x:p.x,y:p.y,n:parseNode(c)});});
+  return Q;}
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+let nid=0;
+function xn(n,pos,pad){
+  const at=Object.entries(n.a).filter(([k])=>k!=="style"&&k!=="keepText").map(([k,v])=>" "+k+'="'+esc(v)+'"').join("");
+  const idp=isIns(n)?' id="'+(nid++)+'"':"",st=n.a.style?' style="'+esc(n.a.style)+'"':"",ps=pos?' pos="'+pos.x+","+pos.y+'"':"";
+  const kids=n.s.map(c=>xn(c,null,pad+"  ")),blk=n.i?pad+"  <Instructions>\n"+n.i.map(c=>xn(c,null,pad+"    ")).join("")+pad+"  </Instructions>\n":"";
+  const head=pad+"<"+n.t+at+idp+st+ps;
+  return kids.length||blk?head+">\n"+kids.join("")+blk+pad+"</"+n.t+">\n":head+" />\n";}
+function toXml(){
+  nid=0;let s='<Program name="'+esc(P.name)+'">\n  <Variables>\n';
+  P.vars.forEach(v=>{s+=v.list?'    <Variable name="'+esc(v.name)+'">\n      <Items />\n    </Variable>\n':'    <Variable name="'+esc(v.name)+'" number="'+esc((v.raw&&v.raw.number)||"0")+'" />\n';});
+  s+="  </Variables>\n";
+  P.stacks.forEach(st=>{s+="  <Instructions>\n"+st.i.map((n,k)=>xn(n,k===0?{x:Math.round(st.x*1e4)/1e4,y:Math.round(st.y*1e4)/1e4}:null,"    ")).join("")+"  </Instructions>\n";});
+  s+="  <Expressions>\n"+P.exprs.map(e=>xn(e.n,{x:Math.round(e.x*1e4)/1e4,y:Math.round(e.y*1e4)/1e4},"    ")).join("")+"  </Expressions>\n</Program>\n";return s;}
+function download(name,text){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"text/xml"}));a.download=name;document.body.appendChild(a);a.click();a.remove();}
+$("file").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const r=new FileReader();r.onload=()=>loadText(r.result,f.name);r.readAsText(f);};
+function loadText(t,name){
+  const d=new DOMParser().parseFromString(t,"application/xml");if(d.querySelector("parsererror"))return msg("That file isn’t valid XML");
+  let progs=[...d.querySelectorAll("Program")];if(!progs.length)return msg("No Vizzy program found in that file");
+  const go=pe=>{const Q=fromProgram(pe);
+    if(selfile==="import"){und.push(ser());Q.stacks.forEach(s=>{s.x+=40;s.y+=40;P.stacks.push(s)});Q.exprs.forEach(x=>P.exprs.push(x));Q.vars.forEach(v=>{if(!P.vars.some(y=>y.name===v.name))P.vars.push(v)});snap();msg("Imported");}
+    else{und.push(ser());P=Q;sync();if(d.documentElement.tagName==="Craft"){craft={doc:d,prog:pe,name};}else craft=null;
+      const xs=[...P.stacks.map(s=>s),...P.exprs];if(xs.length){ox=60-Math.min(...xs.map(s=>s.x));oy=60-Math.min(...xs.map(s=>s.y));}snap();msg("Loaded "+Q.name);}
+    closeFly();};
+  if(progs.length===1)return go(progs[0]);
+  chooser(progs.map((p,i)=>{const part=p.closest("Part");return (part?(part.getAttribute("name")||part.getAttribute("partType"))+" – ":"")+(p.getAttribute("name")||"Program");}),i=>go(progs[i]));}
+function saveCraft(){
+  if(!craft)return msg("Load a craft file first (Load Program), then pick its program.");
+  const x=new DOMParser().parseFromString(toXml(),"application/xml").documentElement,np=craft.doc.importNode(x,true);
+  craft.prog.parentNode.replaceChild(np,craft.prog);craft.prog=np;
+  download(craft.name.replace(/\.xml$/i,"")+"_vizzy.xml",'<?xml version="1.0" encoding="utf-8"?>\n'+new XMLSerializer().serializeToString(craft.doc.documentElement)+"\n");}
+/* ---------- dialogs ---------- */
+function modal(h){$("mbox").innerHTML="";$("mbox").appendChild(h);$("modal").style.display="flex";}
+const hide=()=>{$("modal").style.display="none";};
+function ask(title,val,cb){const w=el("div");w.append(el("h3",null,title));const i=el("input");i.value=val||"";const r=el("div","row2");const c=el("button","btn","Cancel"),o=el("button","btn pri","OK");c.onclick=hide;o.onclick=()=>{hide();cb(i.value);};i.onkeydown=e=>{if(e.key==="Enter")o.click();};r.append(c,o);w.append(i,r);modal(w);i.focus();}
+function chooser(list,cb){const w=el("div");w.append(el("h3",null,"Choose a program"));list.forEach((t,i)=>{const b=el("button","btn",t);b.onclick=()=>{hide();cb(i);};w.appendChild(b);});const c=el("button","btn","Cancel");c.onclick=hide;w.appendChild(c);modal(w);}
+$("modal").onclick=e=>{if(e.target===$("modal"))hide();};
+
+/* ---------- start ---------- */
+P.stacks.push({id:uid++,x:40,y:60,i:[fromTpl({t:"Event",a:{style:"flight-start",event:"FlightStart"},k:[]})]});
+bar();draw();
+window.__t={get P(){return P},set P(v){P=v},toXml,fromProgram,loadText,draw,render,fromTpl,locate,lift,dropAt,snap,undo,T};
+</script>
+</body>
+</html>
